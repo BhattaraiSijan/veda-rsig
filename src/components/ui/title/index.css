@@ -1,0 +1,27 @@
+.title-head {
+  color: var(--main-blue);
+  text-align: left;
+  padding-left: 0.9rem;
+  padding-top: 0.9rem;
+}
+
+.title-container {
+  position: absolute;
+  top: 5px;
+  left: 5px;
+  width: 27rem;
+  background-color: white;
+  color: black;
+  z-index: 999;
+}
+
+.title-content {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+}
+
+.title-note {
+  padding: 0.3rem 0.9rem;
+  padding-bottom: 12px;
+}
