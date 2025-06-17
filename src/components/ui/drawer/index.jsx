@@ -9,15 +9,13 @@ import ChevronRightIcon from '@mui/icons-material/ChevronRight';
 import Divider from '@mui/material/Divider';
 
 // The DatasetGallery is imported directly, as per your structure.
-import { DatasetGallery } from '../datasetGallery'; 
+import { DatasetGallery } from '../datasetGallery';
 
 import { useEffect, useState } from 'react';
 
 import './index.css';
 
-const drawerWidth = '30rem';
-
-// Using the original Main component from your code
+const drawerWidth = '20rem';
 const Main = styledmui('main', {
   shouldForwardProp: (prop) => prop !== 'open',
 })(({ theme, open }) => ({
@@ -46,28 +44,25 @@ const DrawerHeader = styledmui('div')(({ theme }) => ({
   justifyContent: 'flex-start',
 }));
 
-// --- THIS IS THE CORRECTED COMPONENT ---
+
 export function PersistentDrawerRight({
   open,
   setOpen,
-  // --- IMPORTANT: Accept the callback functions as props ---
   onLayerSelect,
   onRecordSelect,
-  // --- All original props are kept for future use ---
+  updateActiveDataset,
   selectedVizItems,
   vizItemMetaData,
-  updateActiveDataset,
   collectionId,
   metaDataTree,
   vizItemsMap,
   handleSelectedVizItems,
   hoveredVizItemId,
   setHoveredVizItemId,
-  children 
+  children
 }) {
   const theme = useTheme();
 
-  // --- All original state and effects are kept for future use ---
   const [selectedVizItemMetas, setSelectedVizItemMetas] = useState([]);
   const [location, setLocation] = useState('USA');
   const [numberOfVizItems, setNumberOfVizItems] = useState(0);
@@ -77,7 +72,6 @@ export function PersistentDrawerRight({
   };
 
   useEffect(() => {
-    // This logic remains untouched for when you need to display item details again
     if (!vizItemMetaData || !selectedVizItems) return;
     if (selectedVizItems.length === 0) {
       setSelectedVizItemMetas([]);
@@ -85,7 +79,6 @@ export function PersistentDrawerRight({
       setNumberOfVizItems(0);
       return;
     }
-    // ... rest of original useEffect logic
   }, [vizItemMetaData, selectedVizItems]);
 
 
@@ -101,7 +94,8 @@ export function PersistentDrawerRight({
           flexShrink: 0,
           '& .MuiDrawer-paper': {
             width: drawerWidth,
-            height: 'calc(100vh - var(--colorbar-height) - 10px)',
+            height: 'fit-content',
+            maxHeight: 'calc(100vh - var(--colorbar-height) - 10px)',
             marginTop: '5px',
             marginRight: '5px',
             borderRadius: '3px',
@@ -121,15 +115,14 @@ export function PersistentDrawerRight({
           </Typography>
         </DrawerHeader>
         <Divider />
-        
-        {/* --- THE FIX --- */}
-        {/* The new props are passed down to the DatasetGallery component */}
-          <DatasetGallery 
+
+          <DatasetGallery
             onLayerSelect={onLayerSelect}
             onRecordSelect={onRecordSelect}
             updateActiveDataset={updateActiveDataset}
           />
       </Drawer>
+
     </Box>
   );
 }

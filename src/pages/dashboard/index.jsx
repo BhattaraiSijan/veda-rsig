@@ -41,10 +41,6 @@ export function Dashboard({
   const [activeLayerUrl, setActiveLayerUrl] = useState(null);
   const [selectedRecord, setSelectedRecord] = useState(null);
   const [layerData, setLayerData] = useState(null);
-
-  // --- ADDED FOR OPACITY/REMOVE FEATURE ---
-  // New state variable to manage the list of layers for display in RecordDetailView.
-  // This holds dataset info and opacity, and its changes will trigger UI updates.
   const [layerDisplayList, setLayerDisplayList] = useState([]);
 
 
@@ -96,7 +92,6 @@ export function Dashboard({
             };
             return updatedList;
         }
-        // If it's a new item, add it to our list with a default opacity of 100.
         return [...currentList, { ...dataset, opacity: 100 }];
     });
   }
@@ -124,8 +119,6 @@ export function Dashboard({
     showStationChart(stationFeature);
   };
 
-  // --- ADDED FOR OPACITY/REMOVE FEATURE ---
-  // New handler to change the opacity for a layer in our state list.
   const handleOpacityChange = (datasetId, newOpacity) => {
       setLayerDisplayList(currentList =>
           currentList.map(item =>
@@ -134,14 +127,9 @@ export function Dashboard({
       );
   };
 
-  // --- ADDED FOR OPACITY/REMOVE FEATURE ---
-  // New handler to remove a layer from all relevant places.
   const handleLayerRemove = (datasetId) => {
-      // Remove from our new state list.
       setLayerDisplayList(currentList => currentList.filter(item => item.id !== datasetId));
-      // Remove from the original ref to keep them synchronized.
       allActiveDatasets.current = allActiveDatasets.current.filter(item => item.id !== datasetId);
-      // If the removed layer is the one currently displayed on the map, clear it.
       if (selectedRecord?.id === datasetId) {
           setSelectedRecord(null);
           setLayerData(null);
@@ -208,8 +196,7 @@ export function Dashboard({
                 onFilteredVizItems={[]}
               />
               <SpatialSubsetManager />
-              {/* --- ADDED FOR OPACITY/REMOVE FEATURE --- */}
-              {/* The RecordDetailView is now driven by our new state list and equipped with handlers. */}
+
               <RecordDetailView
                 record={selectedRecord}
                 allActiveDatasets={layerDisplayList}
@@ -227,8 +214,7 @@ export function Dashboard({
             setOpenDrawer={setOpenDrawer}
             handleResetHome={console.log("")}
           />
-          {/* --- ADDED FOR OPACITY/REMOVE FEATURE --- */}
-          {/* We pass the new list to the DeckGlLayerManager so it can find opacity values. */}
+
           <DeckGlLayerManager
             activeLayerUrl={activeLayerUrl}
             updateActiveLayers={updateActiveLayers}
@@ -240,7 +226,6 @@ export function Dashboard({
             layerOpacityList={layerDisplayList}
           />
 
-          {/* This entire chart section remains completely unchanged. */}
           {isVisible && (
             <div style={{
               position: 'absolute',
@@ -275,12 +260,12 @@ export function Dashboard({
                     <LineChart
                       data={chartData}
                       labels={chartLabels}
-                      legend="Line chart"
+                      legend="PM2.5 AQI "
                       labelX="Date"
-                      labelY="Value (μg/m³)"
+                      labelY="Micrograms/cubic meter (LC)"
                       color="#42a5f5"
                       index={0}
-                      separateY={false}
+                      separateY={true}
                     />
                   </div>
                 </ChartProvider>

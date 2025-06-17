@@ -18,9 +18,6 @@ function handleStationClick(clickedFeature, onStationClick) {
   onStationClick(clickedFeature);
 }
 
-// --- ADDED FOR OPACITY FEATURE ---
-// A new prop `layerOpacityList` is added to receive the array with opacity values.
-// Default to an empty array to prevent errors if it's not passed.
 export function DeckGlLayerManager({
   activeLayerUrl,
   layerData,
@@ -34,7 +31,7 @@ export function DeckGlLayerManager({
 }) {
   const [managedLayers, setManagedLayers] = useState({});
   const mapContext = useMapbox();
-  const deckOverlay = mapContext?.deckOverlay; // Expose for debugging
+  const deckOverlay = mapContext?.deckOverlay;
 
   updateActiveLayers(managedLayers)
 
@@ -46,7 +43,6 @@ export function DeckGlLayerManager({
 
   useEffect(() => {
     const allLayers = Object.values(managedLayers).flat();
-
 
     if (deckOverlay) {
       deckOverlay.setProps({ layers: allLayers });
@@ -63,7 +59,6 @@ export function DeckGlLayerManager({
       setManagedLayers(prevManaged => {
         if (prevManaged.hasOwnProperty(datasetId)) {
           const { [datasetId]: _, ...rest } = prevManaged;
-          // The console log from the original code is preserved.
           console.log(`Clearing all layers for dataset: ${datasetId}`);
           return rest;
         }
@@ -71,19 +66,11 @@ export function DeckGlLayerManager({
       });
       return;
     }
-
-    // --- ADDED FOR OPACITY FEATURE ---
-    // 1. Find the current layer's information in the new list.
     const currentLayerInfo = layerOpacityList.find(layer => layer.id === datasetId);
-    // 2. Calculate the opacity value (0-1 scale). Default to 1.0 (fully opaque) if not found.
     const dynamicOpacity = currentLayerInfo ? (currentLayerInfo.opacity / 100) : 1.0;
 
-
     let newLayers = [];
-
-
     switch (galleryType) {
-
       // case 'point-cloud': {
       //   const pointCloudLayer = new Tile3DLayer({
       //     id: getLayerId('pointcloud', datasetId),
@@ -141,7 +128,7 @@ export function DeckGlLayerManager({
             opacity: dynamicOpacity,
             renderSubLayers: props => {
               const { bbox: { west, south, east, north } } = props.tile;
-              return new BitmapLayer({ ...props, data: null, image: props.data, bounds: [west, south, east, north], modelMatrix: new Matrix4().translate([0, 0, 100000]), });
+              return new BitmapLayer({ ...props, data: null, image: props.data, bounds: [west, south, east, north], modelMatrix: new Matrix4().translate([0, 0, 0]), });
             },
             onClick: (info) => { if (onStationClick) onStationClick({ type: 'raster', feature, tile: info.tile, coordinate: info.coordinate, datetime: properties?.datetime }); }
           });
@@ -150,8 +137,8 @@ export function DeckGlLayerManager({
         if (bounds && mapContext?.map) {
           setTimeout(() => {
             const isRegional = bounds && (bounds.maxLng - bounds.minLng) < 100 && (bounds.maxLat - bounds.minLat) < 50;
-            if (isRegional) zoomToBounds(mapContext.map, bounds, { padding: 20, maxZoom: 8, pitch: 0, bearing: 0 });
-            else mapContext.map.flyTo({ center: [0, 30], zoom: 2, pitch: 0, bearing: 0, duration: 2000 });
+            if (isRegional) zoomToBounds(mapContext.map, bounds, { padding: 20, maxZoom: 4, pitch: 0, bearing: 0 });
+            else mapContext.map.flyTo({ center: [0, 30], zoom: 0, pitch: 0, bearing: 0, duration: 2000 });
           }, 500);
         }
         break;

@@ -32,9 +32,7 @@ const LayerCard = ({ dataset, index, onOpacityChange, onRemove, isDragging }) =>
   };
 
   const getStaticLegend = (type) => {
-    switch (type) {
-      case 'raster':
-        return (
+    return (
           <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, width: '100%' }}>
             <Box sx={{
               flex: 1,
@@ -47,74 +45,6 @@ const LayerCard = ({ dataset, index, onOpacityChange, onRemove, isDragging }) =>
             </Typography>
           </Box>
         );
-      case 'feature':
-      case 'stations':
-        return (
-          <Box sx={{ display: 'flex', alignItems: 'center', gap: 2, width: '100%' }}>
-            <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.5 }}>
-              <Box sx={{ width: 10, height: 10, backgroundColor: '#1f77b4', borderRadius: '50%' }} />
-              <Typography variant="caption" sx={{ fontSize: '0.7rem', color: 'text.secondary' }}>
-                Active Stations
-              </Typography>
-            </Box>
-            <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.5 }}>
-              <Box sx={{ width: 10, height: 10, backgroundColor: '#ff7f0e', borderRadius: '50%' }} />
-              <Typography variant="caption" sx={{ fontSize: '0.7rem', color: 'text.secondary' }}>
-                Inactive
-              </Typography>
-            </Box>
-          </Box>
-        );
-      case 'point-cloud':
-        return (
-          <Box sx={{ display: 'flex', alignItems: 'center', gap: 2, width: '100%' }}>
-            <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.5 }}>
-              <Box sx={{ width: 8, height: 8, backgroundColor: '#ff7f0e', borderRadius: '50%' }} />
-              <Typography variant="caption" sx={{ fontSize: '0.7rem', color: 'text.secondary' }}>
-                Ground
-              </Typography>
-            </Box>
-            <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.5 }}>
-              <Box sx={{ width: 8, height: 8, backgroundColor: '#2ca02c', borderRadius: '50%' }} />
-              <Typography variant="caption" sx={{ fontSize: '0.7rem', color: 'text.secondary' }}>
-                Vegetation
-              </Typography>
-            </Box>
-            <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.5 }}>
-              <Box sx={{ width: 8, height: 8, backgroundColor: '#d62728', borderRadius: '50%' }} />
-              <Typography variant="caption" sx={{ fontSize: '0.7rem', color: 'text.secondary' }}>
-                Buildings
-              </Typography>
-            </Box>
-          </Box>
-        );
-      case 'geojson':
-        return (
-          <Box sx={{ display: 'flex', alignItems: 'center', gap: 2, width: '100%' }}>
-            <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.5 }}>
-              <Box sx={{ width: 20, height: 3, backgroundColor: '#9467bd', borderRadius: 1 }} />
-              <Typography variant="caption" sx={{ fontSize: '0.7rem', color: 'text.secondary' }}>
-                Boundaries
-              </Typography>
-            </Box>
-            <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.5 }}>
-              <Box sx={{ width: 20, height: 3, backgroundColor: '#17becf', borderRadius: 1 }} />
-              <Typography variant="caption" sx={{ fontSize: '0.7rem', color: 'text.secondary' }}>
-                Features
-              </Typography>
-            </Box>
-          </Box>
-        );
-      default:
-        return (
-          <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, width: '100%' }}>
-            <Box sx={{ width: 12, height: 12, backgroundColor: '#8c564b', borderRadius: 1 }} />
-            <Typography variant="caption" sx={{ fontSize: '0.7rem', color: 'text.secondary' }}>
-              Dataset Features
-            </Typography>
-          </Box>
-        );
-    }
   };
 
   const open = Boolean(anchorEl);
