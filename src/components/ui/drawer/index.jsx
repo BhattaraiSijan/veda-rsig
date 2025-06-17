@@ -56,6 +56,7 @@ export function PersistentDrawerRight({
   // --- All original props are kept for future use ---
   selectedVizItems,
   vizItemMetaData,
+  updateActiveDataset,
   collectionId,
   metaDataTree,
   vizItemsMap,
@@ -123,10 +124,11 @@ export function PersistentDrawerRight({
         
         {/* --- THE FIX --- */}
         {/* The new props are passed down to the DatasetGallery component */}
-        <DatasetGallery 
-          onLayerSelect={onLayerSelect}
-          onRecordSelect={onRecordSelect}
-        />
+          <DatasetGallery 
+            onLayerSelect={onLayerSelect}
+            onRecordSelect={onRecordSelect}
+            updateActiveDataset={updateActiveDataset}
+          />
       </Drawer>
     </Box>
   );

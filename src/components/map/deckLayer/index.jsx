@@ -5,42 +5,48 @@ import { BitmapLayer } from '@deck.gl/layers';
 import {GeoJsonLayer, ArcLayer} from '@deck.gl/layers';
 import { Matrix4 } from '@math.gl/core';
 import { useMapbox } from '../../../context/mapContext';
-import { 
-  getLayerId, 
+import {
+  getLayerId,
   removeDatasetLayers,
-  calculateGeoJSONBounds, 
-  zoomToBounds, 
+  calculateGeoJSONBounds,
+  zoomToBounds,
   buildRasterTileUrl,
-  buildNetCDF2DTileUrl 
+  buildNetCDF2DTileUrl
 } from './utils';
 
 function handleStationClick(clickedFeature, onStationClick) {
   onStationClick(clickedFeature);
 }
 
-export function DeckGlLayerManager({ 
-  activeLayerUrl, 
-  layerData, 
-  galleryType, 
+// --- ADDED FOR OPACITY FEATURE ---
+// A new prop `layerOpacityList` is added to receive the array with opacity values.
+// Default to an empty array to prevent errors if it's not passed.
+export function DeckGlLayerManager({
+  activeLayerUrl,
+  layerData,
+  updateActiveLayers,
+  galleryType,
   datasetId,
   onStationClick,
   visible = true,
-  onLayersUpdate
+  onLayersUpdate,
+  layerOpacityList = [],
 }) {
   const [managedLayers, setManagedLayers] = useState({});
   const mapContext = useMapbox();
   const deckOverlay = mapContext?.deckOverlay; // Expose for debugging
+
+  updateActiveLayers(managedLayers)
 
   useEffect(() => {
     window.Tile3DLayer = Tile3DLayer;
     window.GeoJsonLayer = GeoJsonLayer;
     window.ArcLayer = ArcLayer;
   }, []);
-  
+
   useEffect(() => {
     const allLayers = Object.values(managedLayers).flat();
-    
-    console.log(`Syncing Deck.gl with ${allLayers.length} total layers.`);
+
 
     if (deckOverlay) {
       deckOverlay.setProps({ layers: allLayers });
@@ -49,14 +55,15 @@ export function DeckGlLayerManager({
       onLayersUpdate(allLayers);
     }
   }, [managedLayers, deckOverlay, onLayersUpdate]);
-  
+
   useEffect(() => {
     if (!datasetId) return;
-    
+
     if (!layerData) {
       setManagedLayers(prevManaged => {
         if (prevManaged.hasOwnProperty(datasetId)) {
           const { [datasetId]: _, ...rest } = prevManaged;
+          // The console log from the original code is preserved.
           console.log(`Clearing all layers for dataset: ${datasetId}`);
           return rest;
         }
@@ -64,9 +71,16 @@ export function DeckGlLayerManager({
       });
       return;
     }
-    
+
+    // --- ADDED FOR OPACITY FEATURE ---
+    // 1. Find the current layer's information in the new list.
+    const currentLayerInfo = layerOpacityList.find(layer => layer.id === datasetId);
+    // 2. Calculate the opacity value (0-1 scale). Default to 1.0 (fully opaque) if not found.
+    const dynamicOpacity = currentLayerInfo ? (currentLayerInfo.opacity / 100) : 1.0;
+
+
     let newLayers = [];
-    
+
 
     switch (galleryType) {
 
@@ -122,7 +136,9 @@ export function DeckGlLayerManager({
           return new TileLayer({
             id: getLayerId('raster', `${datasetId}-${index}-${itemId}`),
             data: tileUrl,
-            minZoom: 0, maxZoom: 19, tileSize: 256, visible: visible, opacity: 0.9, pickable: true,
+            minZoom: 0, maxZoom: 19, tileSize: 256, visible: visible, pickable: true,
+
+            opacity: dynamicOpacity,
             renderSubLayers: props => {
               const { bbox: { west, south, east, north } } = props.tile;
               return new BitmapLayer({ ...props, data: null, image: props.data, bounds: [west, south, east, north], modelMatrix: new Matrix4().translate([0, 0, 100000]), });
@@ -151,7 +167,9 @@ export function DeckGlLayerManager({
         const netcdfLayer = new TileLayer({
           id: getLayerId('netcdf-2d', datasetId),
           data: tileUrl,
-          minZoom: 0, maxZoom: 19, tileSize: 256, visible: visible, opacity: 0.8, pickable: true,
+          minZoom: 0, maxZoom: 19, tileSize: 256, visible: visible, pickable: true,
+
+          opacity: dynamicOpacity,
           renderSubLayers: props => {
             const { bbox: { west, south, east, north } } = props.tile;
             return new BitmapLayer({ ...props, data: null, image: props.data, bounds: [west, south, east, north] });
@@ -179,6 +197,7 @@ export function DeckGlLayerManager({
           id: getLayerId('station', datasetId),
           data: iconData,
           pickable: true, visible: visible,
+          opacity: dynamicOpacity,
           getIcon: d => ({ url: svgToDataURL(iconSvg), width: 30, height: 30, anchorY: 30, anchorX: 15 }),
           getPosition: d => d.position,
           getSize: 24, sizeScale: 1, sizeMinPixels: 16, sizeMaxPixels: 32,
@@ -205,16 +224,14 @@ export function DeckGlLayerManager({
       }
     }
     setManagedLayers(prevManaged => {
-      console.log(`Setting/updating layers for dataset: ${datasetId}`);
       return {
         ...prevManaged,
         [datasetId]: newLayers,
       };
     });
-      
   }, [
     layerData, activeLayerUrl, galleryType, datasetId, visible,
-    onStationClick, mapContext 
+    onStationClick, mapContext, layerOpacityList
   ]);
   return null;
 }
