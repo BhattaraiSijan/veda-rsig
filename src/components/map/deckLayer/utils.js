@@ -20,8 +20,6 @@ export const getLayerId = (type, uniqueIdentifier) => {
 export const removeDatasetLayers = (layers, datasetId) => {
   if (!datasetId) return layers;
 
-  // This function now robustly filters layers by checking if their ID pertains to the given dataset.
-  // It checks against all possible layer types that might be created.
   const prefixes = [
     `deckgl-pointcloud-layer-${datasetId}`,
     `deckgl-raster-layer-${datasetId}`,
@@ -30,20 +28,17 @@ export const removeDatasetLayers = (layers, datasetId) => {
   ];
 
   return layers.filter(layer => {
-    // A layer belongs to the dataset if its ID starts with any of the dataset's possible prefixes.
     const belongsToDataset = prefixes.some(prefix => layer.id.startsWith(prefix));
     
     if (belongsToDataset) {
       console.log(`🗑️ Removing layer for dataset ${datasetId}:`, layer.id);
     }
 
-    // Keep the layer only if it does NOT belong to the current dataset.
     return !belongsToDataset;
   });
 };
 
 
-// --- The rest of your utility functions remain the same ---
 
 export const calculateGeoJSONBounds = (features) => {
   if (!features || features.length === 0) return null;
@@ -97,7 +92,7 @@ export const zoomToBounds = (map, bounds, options = {}) => {
   if (isGlobal) {
     map.flyTo({
       center: [0, 30],
-      zoom: 2,
+      zoom: 1,
       pitch: pitch,
       bearing: bearing,
       duration: duration
@@ -114,7 +109,7 @@ export const zoomToBounds = (map, bounds, options = {}) => {
       const centerLat = (minLat + maxLat) / 2;
       map.flyTo({
         center: [centerLng, centerLat],
-        zoom: 10,
+        zoom: 4,
         pitch, bearing, duration
       });
     }
@@ -199,7 +194,6 @@ export const removeLayer = (layers, layerId) => {
 };
 
 
-// DEBUG: First let's see what the actual layer IDs look like
 export const addOrUpdateLayers = (layers, newLayers, datasetId) => {
   console.log('🔧 addOrUpdateLayers Debug:', {
     datasetId,
@@ -209,7 +203,6 @@ export const addOrUpdateLayers = (layers, newLayers, datasetId) => {
     newLayerIds: newLayers.map(l => l.id)
   });
   
-  // DEBUG: Test different matching strategies
   layers.forEach(layer => {
     const includesTest = layer.id.includes(datasetId);
     const includesWithDashTest = layer.id.includes(`-${datasetId}`);
@@ -225,9 +218,7 @@ export const addOrUpdateLayers = (layers, newLayers, datasetId) => {
     console.log('---');
   });
   
-  // Try multiple matching strategies - use the one that works
   const filteredLayers = layers.filter(layer => {
-    // Strategy 1: Exact pattern matching
     const exactPattern = new RegExp(`^deckgl-\\w+-layer-${escapeRegExp(datasetId)}(?:-.*)?$`);
     const belongsToCurrentDataset = exactPattern.test(layer.id);
     
@@ -248,7 +239,6 @@ export const addOrUpdateLayers = (layers, newLayers, datasetId) => {
     removedCount: layers.length - filteredLayers.length
   });
   
-  // Add new layers
   const result = [...filteredLayers, ...newLayers];
   
   console.log('✅ Final result:', {

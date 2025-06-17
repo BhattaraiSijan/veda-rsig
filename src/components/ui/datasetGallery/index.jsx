@@ -138,6 +138,7 @@ export function DatasetGallery({ onLayerSelect, onRecordSelect, updateActiveData
                 opacity: loadingDataset === dataset.id ? 0.7 : 1,
                 border: '1px solid',
                 borderColor: 'divider',
+                minWidth:'18rem'
               }}
               onClick={() => handleDatasetClick(dataset)}
             >
