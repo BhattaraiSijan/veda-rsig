@@ -4,10 +4,6 @@ import mapboxgl from 'mapbox-gl';
 import 'mapbox-gl/dist/mapbox-gl.css';
 import {MapboxOverlay} from '@deck.gl/mapbox';
 
-
-import { TileLayer } from '@deck.gl/geo-layers';
-import { BitmapLayer } from '@deck.gl/layers';
-
 const MapboxContext = createContext();
 
 const accessToken = process.env.REACT_APP_MAPBOX_TOKEN;
@@ -29,8 +25,8 @@ export const MapboxProvider = ({ children }) => {
     map.current = new mapboxgl.Map({
       container: mapContainer.current,
       style: mapboxStyleUrl,
-      center: [-82.771556, 32.967243],
-      zoom: 6,
+      center: [-98.5795, 39.8283],
+      zoom: 3,
       options: {
         trackResize: true,
       },
@@ -46,10 +42,7 @@ export const MapboxProvider = ({ children }) => {
       map.current.addControl(deckOverlay.current);
       
       setIsInitialized(true); 
-    });
-    
-    
-    
+    });  
   }, []);
 
   return (

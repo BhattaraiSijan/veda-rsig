@@ -7,8 +7,6 @@ import ChevronRightIcon from '@mui/icons-material/ChevronRight';
 import Stack from '@mui/material/Stack'; 
 import {
   MainMap,
-  MarkerFeature,
-  ColorBar,
   LoadingSpinner,
   PersistentDrawerRight,
   Title,
@@ -16,7 +14,6 @@ import {
   MapZoom,
   Search,
   FilterByDate,
-  VizItemAnimation,
 } from '@components';
 
 import { DeckGlLayerManager } from '../../components/map/deckLayer';
@@ -24,55 +21,25 @@ import { DatasetGallery } from '../../components/ui/datasetGallery';
 import { RecordDetailView } from '@components/detailView';
 import SpatialSubsetManager from '@components/ui/spatialSubsetManager';
 
-// Import chart components
-import { ChartProvider, useChart } from '../../context/chartContext';
-import { ChartTools, ChartToolsLeft, ChartToolsRight, CloseButton, ZoomResetTool } from '@components/chartComponents';
-
-// Import the station chart hook
+import { ChartProvider } from '../../context/chartContext';
+import { CloseButton, ZoomResetTool } from '@components/chartComponents';
 import { useStationChart } from '../../hooks/useStationChart';
 
-import styled from 'styled-components';
 import './index.css';
 import { LineChart } from '../../components/lineChart';
 
 const TITLE = 'Air Quality Dashboard';
 const DESCRIPTION = "";
 
-const HorizontalLayout = styled.div`
-  width: 90%;
-  display: flex;
-  flex-direction: row;
-  justify-content: space-between;
-  margin: 12px;
-`;
-
 export function Dashboard({
-  data,
-  dataTree,
-  metaDataTree,
-  collectionMeta,
-  vizItemMetaData,
   zoomLocation,
-  setZoomLocation,
   zoomLevel,
-  setZoomLevel,
   loadingData,
 }) {
   
-  const [vizItems, setVizItems] = useState([]);
-  const [hoveredVizLayerId, setHoveredVizLayerId] = useState('');
-  const [filteredVizItems, setFilteredVizItems] = useState([]);
   const [isSidebarOpen, setIsSidebarOpen] = useState(true); 
-  const [vizItemsForAnimation, setVizItemsForAnimation] = useState([]);
-  const [VMAX, setVMAX] = useState(100);
-  const [VMIN, setVMIN] = useState(-92);
-  const [colormap, setColormap] = useState('default');
-  const [assets, setAssets] = useState('rad');
   const [openDrawer, setOpenDrawer] = useState(true);
-  const [isChartVisible, setIsChartVisible] = useState(false);
-  const collectionId = data?.[0]?.collection;
 
-  const [allLayers, setAllLayers] = useState([]);
   const [activeLayerUrl, setActiveLayerUrl] = useState(null);
   const [selectedRecord, setSelectedRecord] = useState(null);
   const [layerData, setLayerData] = useState(null);
@@ -90,15 +57,11 @@ export function Dashboard({
   
   const onLayerSelect = (url) => {
     setActiveLayerUrl(url);
-    //emit the custom event called 'layerSelected' with the url
-   // const event = new CustomEvent('layerSelected', { detail: url }, );
-
     const myCustomEvent = new CustomEvent("layerSelected", {
-         detail: { allLayers:allLayers , url: url },
-         bubbles: true, // Allows event to bubble up the DOM tree
-         cancelable: true // Allows event to be canceled
+         detail: { url: url },
+         bubbles: true, 
+         cancelable: true
      });
-
     window.dispatchEvent(myCustomEvent);  
     console.log("event dispatched Layer selected:", myCustomEvent);
   };
@@ -123,19 +86,6 @@ export function Dashboard({
     console.log("Station clicked in Dashboard:", stationFeature);
     showStationChart(stationFeature);
   };
-  
-  useEffect(() => {
-    if (!dataTree.current || !data) return;
-    const newVizItems = {};
-    const testData = data.slice(0, 10);
-    testData.forEach((items) => {
-      newVizItems[items.id] = items;
-    });
-    setVizItems(newVizItems);
-  }, [data, dataTree]);
-  
-  const onFilteredVizItems = (filteredVizItems) => {
-  };
 
   useEffect(() => {
     fetch('/plugins/pointcloud/events.js')
@@ -146,7 +96,6 @@ export function Dashboard({
         return response.text();
       })
       .then(eventsCode => {
-        // eslint-disable-next-line no-eval
         eval(eventsCode);
       })
       .catch(err => {
@@ -190,12 +139,12 @@ export function Dashboard({
             <Stack sx={{ p: 1.5, overflowY: 'auto' }} spacing={1.5}> {/* Reduced padding and spacing */}
               <Title title={TITLE} description={DESCRIPTION} />
               <Search
-                vizItems={Object.values(vizItems)}
+                vizItems={[]}
                 onSelectedVizItemSearch={console.log("")}
               />
               <FilterByDate
-                vizItems={Object.values(vizItems)}
-                onFilteredVizItems={onFilteredVizItems}
+                vizItems={[]}
+                onFilteredVizItems={[]}
               />
               <SpatialSubsetManager />
               <RecordDetailView 
@@ -210,10 +159,6 @@ export function Dashboard({
             openDrawer={openDrawer}
             setOpenDrawer={setOpenDrawer}
             handleResetHome={console.log("")}
-          />
-          <MarkerFeature
-            vizItems={Object.values(vizItems)}
-            onSelectVizItem={console.log("")}
           />
           <DeckGlLayerManager
             activeLayerUrl={activeLayerUrl}
@@ -293,7 +238,6 @@ export function Dashboard({
                     </div>
                   </div>
                   
-                  {/* LineChart Container - Full Size */}
                   <div style={{ flex: 1, padding: '16px' }}>
                     <LineChart 
                       data={chartData}
@@ -309,7 +253,6 @@ export function Dashboard({
                 </ChartProvider>
               )}
               
-              {/* Show message when no data */}
               {!isLoading && !error && (!chartData || chartData.length === 0) && (
                 <div style={{ 
                   display: 'flex', 
@@ -328,31 +271,14 @@ export function Dashboard({
           
         </MainMap>
         
-        <VizItemAnimation
-          VMIN={VMIN}
-          VMAX={VMAX}
-          colormap={colormap}
-          assets={assets}
-          vizItems={vizItemsForAnimation}
-        />
-        
         <PersistentDrawerRight
           open={openDrawer}
           setOpen={setOpenDrawer}
-          selectedVizItems={filteredVizItems}
-          vizItemMetaData={vizItemMetaData}
-          metaDataTree={metaDataTree}
-          collectionId={collectionId}
-          vizItemsMap={vizItems}
-          handleSelectedVizItems={console.log("")}
-          hoveredVizItemId={hoveredVizLayerId}
-          setHoveredVizItemId={setHoveredVizLayerId}
           onLayerSelect={onLayerSelect}
           onRecordSelect={onRecordSelect}
         >
           <DatasetGallery 
             onLayerSelect={onLayerSelect}
-            setAllLayers={setAllLayers}
             onRecordSelect={onRecordSelect}
           />
         </PersistentDrawerRight>
