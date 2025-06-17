@@ -50,8 +50,7 @@ export function Dashboard({
     chartLabels, 
     isLoading, 
     error, 
-    showStationChart, 
-    hideStationChart, 
+    showStationChart,     hideStationChart, 
     isVisible 
   } = useStationChart();
   
@@ -65,6 +64,19 @@ export function Dashboard({
     window.dispatchEvent(myCustomEvent);  
     console.log("event dispatched Layer selected:", myCustomEvent);
   };
+
+  const allActiveDatasets = useRef([]);
+  const updateActiveDataset = (dataset) =>{
+    if (!dataset) return;
+    allActiveDatasets.current.push(dataset);
+    // const existingIndex = allActiveDatasets.current.findIndex(d => d.id === dataset.id);
+    // if (existingIndex !== -1) {
+    //   allActiveDatasets.current[existingIndex] = dataset;
+    // } else {
+      
+    // }
+    console.log("Updated active datasets:", allActiveDatasets.current);
+  }
   
   const onRecordSelect = (dataWithMetadata) => {
     if (dataWithMetadata.datasetInfo && dataWithMetadata.galleryType) {
@@ -77,13 +89,10 @@ export function Dashboard({
       setSelectedRecord(dataWithMetadata);
       setLayerData(dataWithMetadata);
     }
-
     setOpenDrawer(false);
   };
   
-  // Simple station click handler
   const handleStationClick = (stationFeature) => {
-    console.log("Station clicked in Dashboard:", stationFeature);
     showStationChart(stationFeature);
   };
 
@@ -102,7 +111,8 @@ export function Dashboard({
         console.error('Failed to load or eval events.js:', err);
       });
   }, []);
-
+  console.log("Update active dataset function in dashboard.",updateActiveDataset)
+  console.log("All Active Datasets:", allActiveDatasets.current);
 
   return (
     <Box className='fullSize'>
@@ -136,7 +146,7 @@ export function Dashboard({
             }} 
             elevation={16}
           >
-            <Stack sx={{ p: 1.5, overflowY: 'auto' }} spacing={1.5}> {/* Reduced padding and spacing */}
+            <Stack sx={{ p: 1.5, overflowY: 'auto' }} spacing={1.5}> 
               <Title title={TITLE} description={DESCRIPTION} />
               <Search
                 vizItems={[]}
@@ -276,12 +286,8 @@ export function Dashboard({
           setOpen={setOpenDrawer}
           onLayerSelect={onLayerSelect}
           onRecordSelect={onRecordSelect}
-        >
-          <DatasetGallery 
-            onLayerSelect={onLayerSelect}
-            onRecordSelect={onRecordSelect}
-          />
-        </PersistentDrawerRight>
+          updateActiveDataset={updateActiveDataset}
+        />
       </div>
       {loadingData && <LoadingSpinner />}
     </Box>

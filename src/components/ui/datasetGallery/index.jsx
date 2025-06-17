@@ -1,8 +1,6 @@
 import React, { useState } from 'react';
 import { 
   Card, 
-  CardContent, 
-  CardMedia, 
   Typography, 
   Grid, 
   Box,
@@ -14,7 +12,9 @@ import {
 import { fetchDatasetData } from '../../../utils/urlBuilder'; 
 import {galleryData} from './datasets';
 
-export function DatasetGallery({ onLayerSelect, onRecordSelect }) {
+export function DatasetGallery({ onLayerSelect, onRecordSelect, updateActiveDataset }) {
+
+  console.log("::::::::::::::::Update Dataset function in gallery componenet", updateActiveDataset);
   const [loadingDataset, setLoadingDataset] = useState(null);
   const [error, setError] = useState(null);
 
@@ -24,6 +24,7 @@ export function DatasetGallery({ onLayerSelect, onRecordSelect }) {
       category
     }))];
   }, []);
+
   const handleDatasetClick = async (dataset) => {
     if (dataset.type === 'netcdf-2d') {
     const directData = {
@@ -39,6 +40,7 @@ export function DatasetGallery({ onLayerSelect, onRecordSelect }) {
     if (onRecordSelect) {
       onRecordSelect(directData);
     }
+    updateActiveDataset(dataset);
     return;
   }
 
@@ -56,9 +58,9 @@ export function DatasetGallery({ onLayerSelect, onRecordSelect }) {
         onRecordSelect(data);
       }
     } catch (error) {
-      console.log(error)
       setError(`Failed to load ${dataset.name}: ${error.message}`);
     } finally {
+      updateActiveDataset(dataset);
       setLoadingDataset(null);
     }
   };
