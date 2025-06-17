@@ -14,7 +14,6 @@ import {galleryData} from './datasets';
 
 export function DatasetGallery({ onLayerSelect, onRecordSelect, updateActiveDataset }) {
 
-  console.log("::::::::::::::::Update Dataset function in gallery componenet", updateActiveDataset);
   const [loadingDataset, setLoadingDataset] = useState(null);
   const [error, setError] = useState(null);
 
