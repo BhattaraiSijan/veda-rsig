@@ -7,7 +7,7 @@ import { Matrix4 } from '@math.gl/core';
 import { useMapbox } from '../../../context/mapContext';
 import { 
   getLayerId, 
-  removeDatasetLayers, // Note: This is no longer used but kept for API consistency if needed elsewhere
+  removeDatasetLayers,
   calculateGeoJSONBounds, 
   zoomToBounds, 
   buildRasterTileUrl,
@@ -27,24 +27,17 @@ export function DeckGlLayerManager({
   visible = true,
   onLayersUpdate
 }) {
-  // STATE REFACTOR: Instead of a flat array, we use an object keyed by datasetId.
-  // This isolates each dataset's layers and prevents them from interfering with each other.
-  // Example: { 'omi-no2-2d': [TileLayer], 'calipso-aerosols': [Tile3DLayer] }
   const [managedLayers, setManagedLayers] = useState({});
   const mapContext = useMapbox();
   const deckOverlay = mapContext?.deckOverlay; // Expose for debugging
 
   useEffect(() => {
-    // Expose the layers and utilities globally for debugging.
     window.Tile3DLayer = Tile3DLayer;
-    // window.deckOverlay = deckOverlay;
     window.GeoJsonLayer = GeoJsonLayer;
     window.ArcLayer = ArcLayer;
   }, []);
   
-
   useEffect(() => {
-    // We flatten all the layer arrays from our state object into a single array for Deck.gl.
     const allLayers = Object.values(managedLayers).flat();
     
     console.log(`Syncing Deck.gl with ${allLayers.length} total layers.`);
@@ -57,30 +50,24 @@ export function DeckGlLayerManager({
     }
   }, [managedLayers, deckOverlay, onLayersUpdate]);
   
-  // This effect reacts to prop changes to add, update, or remove layers from our state.
   useEffect(() => {
     if (!datasetId) return;
     
-    // --- Logic to REMOVE layers for a dataset ---
     if (!layerData) {
       setManagedLayers(prevManaged => {
-        // If the datasetId exists as a key, create a new object without it.
         if (prevManaged.hasOwnProperty(datasetId)) {
           const { [datasetId]: _, ...rest } = prevManaged;
           console.log(`Clearing all layers for dataset: ${datasetId}`);
           return rest;
         }
-        // Otherwise, no change is needed.
         return prevManaged;
       });
       return;
     }
     
-    // --- Logic to ADD or REPLACE layers for a dataset ---
     let newLayers = [];
     
-    // The switch statement generates the new layer(s) based on galleryType.
-    // This logic remains the same.
+
     switch (galleryType) {
 
       // case 'point-cloud': {
@@ -217,9 +204,6 @@ export function DeckGlLayerManager({
         break;
       }
     }
-    
-    // This is now the single point of truth for updating our state.
-    // It adds or overwrites the layers for the given datasetId.
     setManagedLayers(prevManaged => {
       console.log(`Setting/updating layers for dataset: ${datasetId}`);
       return {
@@ -230,11 +214,7 @@ export function DeckGlLayerManager({
       
   }, [
     layerData, activeLayerUrl, galleryType, datasetId, visible,
-    onStationClick, mapContext // mapContext is needed for flyTo calls
+    onStationClick, mapContext 
   ]);
-    
-  // The second, problematic useEffect for cleanup has been removed entirely.
-  // The logic above now handles all cases correctly.
-
   return null;
 }

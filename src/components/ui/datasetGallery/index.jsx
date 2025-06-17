@@ -14,7 +14,7 @@ import {
 import { fetchDatasetData } from '../../../utils/urlBuilder'; 
 import {galleryData} from './datasets';
 
-export function DatasetGallery({ onLayerSelect, onRecordSelect, setAllLayers }) {
+export function DatasetGallery({ onLayerSelect, onRecordSelect }) {
   const [loadingDataset, setLoadingDataset] = useState(null);
   const [error, setError] = useState(null);
 
@@ -35,7 +35,6 @@ export function DatasetGallery({ onLayerSelect, onRecordSelect, setAllLayers }) 
       datasetInfo: dataset,
       galleryType: dataset.type
     };
-    setAllLayers(prevLayers => [...prevLayers, directData]);
     
     if (onRecordSelect) {
       onRecordSelect(directData);
@@ -56,7 +55,6 @@ export function DatasetGallery({ onLayerSelect, onRecordSelect, setAllLayers }) 
       if (onRecordSelect) {
         onRecordSelect(data);
       }
-      setAllLayers(prevLayers => [...prevLayers, data]);
     } catch (error) {
       console.log(error)
       setError(`Failed to load ${dataset.name}: ${error.message}`);
