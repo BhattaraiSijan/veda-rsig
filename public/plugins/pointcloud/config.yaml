@@ -1,0 +1,10 @@
+left: 
+  layermanager:
+    datasets:
+      - name: "AQS"
+        url: "STAC URL"
+        type: "vector"
+        onClick: "showPopup"
+bottom:
+  component:
+    - chart.js

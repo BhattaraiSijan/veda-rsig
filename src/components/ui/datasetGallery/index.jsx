@@ -1,105 +1,218 @@
 import React, { useState } from 'react';
-import Box from '@mui/material/Box';
-import Typography from '@mui/material/Typography';
-import Grid from '@mui/material/Grid';
-import Card from '@mui/material/Card';
-import CardActionArea from '@mui/material/CardActionArea';
-import CardContent from '@mui/material/CardContent';
-import CardMedia from '@mui/material/CardMedia';
+import { 
+  Card, 
+  CardContent, 
+  CardMedia, 
+  Typography, 
+  Grid, 
+  Box,
+  CircularProgress,
+  Alert,
+  Chip
+} from '@mui/material';
 
-// We assume this data will be imported from your new data structure
-import { galleryData } from './datasets'; 
+import { fetchDatasetData } from '../../../utils/urlBuilder'; 
+import {galleryData} from './datasets';
 
+export function DatasetGallery({ onLayerSelect, onRecordSelect, setAllLayers }) {
+  const [loadingDataset, setLoadingDataset] = useState(null);
+  const [error, setError] = useState(null);
 
-// The component now accepts two callback props:
-// onLayerSelect: To update the map layer.
-// onRecordSelect: To pass the fetched record details up.
-export function DatasetGallery({ onLayerSelect, onRecordSelect }) {
-  const [selectedDatasetId, setSelectedDatasetId] = useState('radar-nexrad'); 
-
-  // The handler is now an async function to handle the fetch call
-  const handleCardClick = async (dataset) => {
-    // 1. Update the local state to highlight the clicked card
-    setSelectedDatasetId(dataset.id);
-    console.log(dataset)
+  const allDatasets = Object.keys(galleryData).reduce((acc, category) => {
+    return [...acc, ...galleryData[category].map(dataset => ({
+      ...dataset,
+      category
+    }))];
+  }, []);
+  const handleDatasetClick = async (dataset) => {
+    if (dataset.type === 'netcdf-2d') {
+    const directData = {
+      conceptId: dataset.conceptId || "C3273638632-GES_DISC",
+      datetime: dataset.datetime || "2018-02-12T09:00:00Z", 
+      variable: dataset.variable || "NPP",
+      colormap: dataset.colormap || "reds",
+      rescale: dataset.rescale || "0, 4.786979e-10",
+      datasetInfo: dataset,
+      galleryType: dataset.type
+    };
+    setAllLayers(prevLayers => [...prevLayers, directData]);
     
-    // --- This is your existing logic to add a layer to the map ---
-    const layerApiUrl = `https://dev.openveda.cloud/api/features/collections/${dataset.id}/items`;
-    if (onLayerSelect) {
-      onLayerSelect(layerApiUrl);
+    if (onRecordSelect) {
+      onRecordSelect(directData);
     }
-    console.log(`Layer selected: ${dataset.name}, URL: ${layerApiUrl}`);
-    // --- End of existing logic ---
-
-
-    // --- THIS IS THE NEW LOGIC TO FETCH A SPECIFIC RECORD ---
-    // 2. Construct the URL for a single record (using '1' as a placeholder ID)
-    const recordApiUrl = `https://dev.openveda.cloud/api/features/collections/${dataset.name}/items/${dataset.id}`;
-    console.log(`Fetching record details from: ${recordApiUrl}`);
+    return;
+  }
 
     try {
-      const response = await fetch(recordApiUrl);
-      if (!response.ok) {
-        throw new Error(`HTTP error! status: ${response.status}`);
-      }
-      const recordData = await response.json();
+      setLoadingDataset(dataset.id);
+      setError(null);
       
-      // 3. Call the onRecordSelect function with the fetched data
-      // This sends the detailed record information up to the Dashboard component.
-      if (onRecordSelect) {
-        onRecordSelect(recordData);
+      const data = await fetchDatasetData(dataset);
+      
+      if (onLayerSelect) {
+        onLayerSelect(data.datasetInfo?.url || null);
       }
-      console.log('Record data fetched successfully:', recordData);
-
+      
+      if (onRecordSelect) {
+        onRecordSelect(data);
+      }
+      setAllLayers(prevLayers => [...prevLayers, data]);
     } catch (error) {
-      console.error("Error fetching record details:", error);
-      // Optionally, pass an error state up as well
-      if (onRecordSelect) {
-        onRecordSelect(null); // Clear previous record on error
-      }
+      console.log(error)
+      setError(`Failed to load ${dataset.name}: ${error.message}`);
+    } finally {
+      setLoadingDataset(null);
     }
-    // --- END OF NEW LOGIC ---
+  };
+
+  const getTypeColor = (type) => {
+    switch (type) {
+      case 'raster':
+        return 'primary';
+      case 'stations':
+        return 'secondary';
+      case 'point-cloud':
+        return 'success';
+      case 'feature':
+        return 'warning';
+      case 'geojson':
+        return 'info';
+      default:
+        return 'default';
+    }
+  };
+
+  const getTypeIcon = (type) => {
+    switch (type) {
+      case 'raster':
+        return '🛰️';
+      case 'stations':
+        return '📍';
+      case 'point-cloud':
+        return '☁️';
+      case 'feature':
+         return '📊';
+      case 'geojson':
+        return '🗺️';
+      default:
+        return '📝';
+    }
+  };
+
+  const getCategoryColor = (category) => {
+    switch (category) {
+      case 'satellite':
+        return '#e3f2fd';
+      case 'insitu':
+        return '#f3e5f5';
+      case 'lidar':
+        return '#e8f5e8';
+      default:
+        return '#fafafa';
+    }
   };
 
   return (
-    <Box sx={{ width: '100%', height: '100%', overflowY: 'auto', p: 1 }}>
-      {Object.entries(galleryData).map(([category, datasets]) => (
-        <Box key={category} sx={{ mb: 3 }}>
-          <Typography variant="subtitle1" sx={{ fontWeight: 'bold', px: 1, mb: 1.5 }}>
-            {category}
-          </Typography>
-          
-          <Grid container spacing={1}>
-            {datasets.map((dataset) => (
-              <Grid item xs={4} key={dataset.id}> 
-                <Card 
-                  variant="outlined"
-                  sx={{ 
-                    borderColor: selectedDatasetId === dataset.id ? 'primary.main' : 'rgba(0, 0, 0, 0.12)',
-                    borderWidth: selectedDatasetId === dataset.id ? '2px' : '1px',
+    <Box sx={{ width: '100%', height: '100%', p: 2, overflowY: 'auto' }}>
+      {error && (
+        <Alert severity="error" sx={{ mb: 2 }} onClose={() => setError(null)}>
+          {error}
+        </Alert>
+      )}
+
+      <Typography variant="h6" sx={{ mb: 2, fontWeight: 600, color: 'text.primary' }}>
+         Datasets
+      </Typography>
+
+      <Grid container spacing={2}>
+        {allDatasets.map((dataset) => (
+          <Grid item xs={12} sm={6} key={dataset.id}>
+            <Card 
+              sx={{ 
+                cursor: 'pointer',
+                transition: 'all 0.2s ease-in-out',
+                '&:hover': {
+                  transform: 'translateY(-2px)',
+                  boxShadow: 4,
+                },
+                position: 'relative',
+                opacity: loadingDataset === dataset.id ? 0.7 : 1,
+                border: '1px solid',
+                borderColor: 'divider',
+              }}
+              onClick={() => handleDatasetClick(dataset)}
+            >
+              {loadingDataset === dataset.id && (
+                <Box
+                  sx={{
+                    position: 'absolute',
+                    top: 0,
+                    left: 0,
+                    right: 0,
+                    bottom: 0,
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                    backgroundColor: 'rgba(255, 255, 255, 0.9)',
+                    zIndex: 2,
+                    borderRadius: 1
                   }}
                 >
-                  <CardActionArea onClick={() => handleCardClick(dataset)}>
-                    <CardMedia
-                      component="img"
-                      height="75"
-                      image={dataset.thumbnailUrl}
-                      alt={dataset.name}
-                      sx={{ objectFit: 'cover' }}
-                      onError={(e) => { e.target.onerror = null; e.target.src = 'https://placehold.co/100x75/CCCCCC/FFFFFF?text=Error'; }}
-                    />
-                    <CardContent sx={{ p: 1, textAlign: 'center' }}>
-                      <Typography variant="caption" component="div">
-                        {dataset.name}
+                  <CircularProgress size={32} />
+                </Box>
+              )}
+              
+              <Box sx={{display: 'flex', alignItems: 'center', p: 1.5}}>
+                 <Box sx={{
+                    height: 50,
+                    width: 50,
+                    minWidth: 50,
+                    backgroundColor: getCategoryColor(dataset.category),
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                    fontSize: '1.5rem',
+                    borderRadius: 1,
+                    mr: 1.5
+                  }}>
+                    {getTypeIcon(dataset.type)}
+                </Box>
+                
+                <Box>
+                    <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 0.5 }}>
+                        <Typography 
+                            variant="subtitle1" 
+                            component="h3" 
+                            sx={{ 
+                            fontWeight: 600,
+                            lineHeight: 1.3
+                            }}
+                        >
+                            {dataset.name}
+                        </Typography>
+                        <Chip 
+                            label={dataset.category}
+                            size="small"
+                            color={getTypeColor(dataset.type)}
+                            sx={{ ml: 1, height: 20, fontSize: '0.6875rem' }}
+                        />
+                    </Box>
+                    <Typography 
+                        variant="body2" 
+                        color="text.secondary"
+                        sx={{ 
+                          fontSize: '0.8rem',
+                          lineHeight: 1.2,
+                        }}
+                      >
+                        {dataset.description}
                       </Typography>
-                    </CardContent>
-                  </CardActionArea>
-                </Card>
-              </Grid>
-            ))}
+                </Box>
+              </Box>
+            </Card>
           </Grid>
-        </Box>
-      ))}
+        ))}
+      </Grid>
     </Box>
   );
 }

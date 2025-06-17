@@ -22,6 +22,8 @@ export { ColorBar } from './ui/colorBar';
 export { LoadingSpinner } from './ui/loading';
 export { Title } from './ui/title';
 
+
+export {LineChart} from './lineChart';
 // Utils
 export {
   getSourceId,

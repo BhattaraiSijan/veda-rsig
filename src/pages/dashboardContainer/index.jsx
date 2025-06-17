@@ -52,6 +52,7 @@ export function DashboardContainer() {
       try {
         // fetch in the collection from the features api
         const collectionUrl = `${process.env.REACT_APP_STAC_API_URL}/collections/${collectionId}`;
+        console.log('Fetching collection metadata from:', collectionUrl);
         // use this url to find out the data frequency of the collection
         // store to a state.
         fetch(collectionUrl)
@@ -79,7 +80,7 @@ export function DashboardContainer() {
     };
 
     fetchData().catch(console.error);
-  }, []); // only on initial mount
+  }, []); 
 
   return (
     <Dashboard

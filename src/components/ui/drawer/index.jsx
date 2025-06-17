@@ -62,6 +62,7 @@ export function PersistentDrawerRight({
   handleSelectedVizItems,
   hoveredVizItemId,
   setHoveredVizItemId,
+  children 
 }) {
   const theme = useTheme();
 

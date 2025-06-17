@@ -1,65 +1,240 @@
-import React, { useEffect } from 'react';
-import { useMapbox } from '../../../context/mapContext'; // Adjust path to your mapContext file
-import { GeoJsonLayer } from '@deck.gl/layers';
+import React, { useEffect, useState } from 'react';
+import { IconLayer } from '@deck.gl/layers';
+import { Tile3DLayer, TileLayer } from '@deck.gl/geo-layers';
+import { BitmapLayer } from '@deck.gl/layers';
+import {GeoJsonLayer, ArcLayer} from '@deck.gl/layers';
+import { Matrix4 } from '@math.gl/core';
+import { useMapbox } from '../../../context/mapContext';
+import { 
+  getLayerId, 
+  removeDatasetLayers, // Note: This is no longer used but kept for API consistency if needed elsewhere
+  calculateGeoJSONBounds, 
+  zoomToBounds, 
+  buildRasterTileUrl,
+  buildNetCDF2DTileUrl 
+} from './utils';
 
-/**
- * This component manages a single GeoJsonLayer for Deck.gl.
- * It listens to an `activeLayerUrl` prop and updates the map when the URL changes.
- * It's a "manager" component, so it doesn't render any visible HTML itself.
- */
-export function DeckGlLayerManager({ activeLayerUrl, onStationClick }) {
-  // Get the deckOverlay instance from our map context.
-  const { deckOverlay } = useMapbox();
+function handleStationClick(clickedFeature, onStationClick) {
+  onStationClick(clickedFeature);
+}
+
+export function DeckGlLayerManager({ 
+  activeLayerUrl, 
+  layerData, 
+  galleryType, 
+  datasetId,
+  onStationClick,
+  visible = true,
+  onLayersUpdate
+}) {
+  // STATE REFACTOR: Instead of a flat array, we use an object keyed by datasetId.
+  // This isolates each dataset's layers and prevents them from interfering with each other.
+  // Example: { 'omi-no2-2d': [TileLayer], 'calipso-aerosols': [Tile3DLayer] }
+  const [managedLayers, setManagedLayers] = useState({});
+  const mapContext = useMapbox();
+  const deckOverlay = mapContext?.deckOverlay; // Expose for debugging
 
   useEffect(() => {
-    // If the deck.gl overlay isn't ready yet, do nothing.
-    if (!deckOverlay) {
-      return;
-    }
+    // Expose the layers and utilities globally for debugging.
+    window.Tile3DLayer = Tile3DLayer;
+    // window.deckOverlay = deckOverlay;
+    window.GeoJsonLayer = GeoJsonLayer;
+    window.ArcLayer = ArcLayer;
+  }, []);
+  
 
-    // If the activeLayerUrl is cleared (e.g., set to null),
-    // we remove all layers from the overlay.
-    if (!activeLayerUrl) {
-      deckOverlay.setProps({ layers: [] });
-      return;
-    }
+  useEffect(() => {
+    // We flatten all the layer arrays from our state object into a single array for Deck.gl.
+    const allLayers = Object.values(managedLayers).flat();
+    
+    console.log(`Syncing Deck.gl with ${allLayers.length} total layers.`);
 
-    // A new layer URL has been provided, so we create a new GeoJsonLayer.
-    const geoJsonLayer = new GeoJsonLayer({
-      id: `geojson-layer-${activeLayerUrl}`, // Dynamic ID prevents layer conflicts
-      data: activeLayerUrl,
-      
-      // Add debugging hooks to see if data loads or if there is an error
-      onDataLoad: (data) => {
-        console.log('Deck.gl: GeoJSON data successfully loaded for', activeLayerUrl, data);
-      },
-      onError: (error) => {
-        console.error('Deck.gl: Error loading GeoJSON data for', activeLayerUrl, error);
-      },
-      
-      // Styling and interactivity properties
-      pickable: true,
-      pointRadiusMinPixels: 5,
-      getPointRadius: 8,
-      getFillColor: [0, 128, 255, 180], // NASA Blue with transparency
-      
-      // The onClick handler that will be triggered when a user clicks a point on this layer.
-      onClick: (info) => {
-        // If an onStationClick function was passed as a prop, we call it
-        // with the data from the feature that was clicked.
-        if (onStationClick && info.object) {
-          onStationClick(info.object);
+    if (deckOverlay) {
+      deckOverlay.setProps({ layers: allLayers });
+    }
+    if (onLayersUpdate) {
+      onLayersUpdate(allLayers);
+    }
+  }, [managedLayers, deckOverlay, onLayersUpdate]);
+  
+  // This effect reacts to prop changes to add, update, or remove layers from our state.
+  useEffect(() => {
+    if (!datasetId) return;
+    
+    // --- Logic to REMOVE layers for a dataset ---
+    if (!layerData) {
+      setManagedLayers(prevManaged => {
+        // If the datasetId exists as a key, create a new object without it.
+        if (prevManaged.hasOwnProperty(datasetId)) {
+          const { [datasetId]: _, ...rest } = prevManaged;
+          console.log(`Clearing all layers for dataset: ${datasetId}`);
+          return rest;
         }
+        // Otherwise, no change is needed.
+        return prevManaged;
+      });
+      return;
+    }
+    
+    // --- Logic to ADD or REPLACE layers for a dataset ---
+    let newLayers = [];
+    
+    // The switch statement generates the new layer(s) based on galleryType.
+    // This logic remains the same.
+    switch (galleryType) {
+
+      // case 'point-cloud': {
+      //   const pointCloudLayer = new Tile3DLayer({
+      //     id: getLayerId('pointcloud', datasetId),
+      //     data: activeLayerUrl,
+      //     pickable: true,
+      //     visible: visible,
+      //     pointSize: 2,
+      //     opacity: 1.0,
+      //     _subLayerProps: {
+      //       'points': { pointSize: 0.2, getColor: (d) => d.color || [0, 255, 0, 255], material: false, radiusPixels: 15, billboard: false, sizeScale: 1, sizeMinPixels: 8, sizeMaxPixels: 30 },
+      //       'mesh': { getColor: [0, 255, 0, 255], material: false, wireframe: false }
+      //     },
+      //     loadOptions: { '3d-tiles': { pointCloudColoration: { mode: 'RGB' } } },
+      //     getPointColor: [0, 255, 0, 255],
+      //     onClick: (info) => { if (info.object && onStationClick) onStationClick(info.object); },
+      //     onTilesetLoad: (tileset) => {
+      //       if (layerData?.asset?.ept?.bounds) {
+      //         const bounds = layerData.asset.ept.bounds;
+      //         const [minX, minY, minZ, maxX, maxY, maxZ] = bounds;
+      //         const centerX = (minX + maxX) / 2;
+      //         const centerY = (minY + maxY) / 2;
+      //         const centerLng = ((centerX - 500000) / 111320) - 105;
+      //         const centerLat = centerY / 110540;
+      //         if (mapContext?.map) mapContext.map.flyTo({ center: [centerLng, centerLat], zoom: 10, pitch: 60, bearing: 0, duration: 2000 });
+      //       } else if (layerData?.root?.boundingVolume?.region) {
+      //         const region = layerData.root.boundingVolume.region;
+      //         const [west, south, east, north] = region;
+      //         const centerLng = ((west + east) / 2) * (180 / Math.PI);
+      //         const centerLat = ((south + north) / 2) * (180 / Math.PI);
+      //         if (mapContext?.map) mapContext.map.flyTo({ center: [centerLng, centerLat], zoom: 10, pitch: 60, bearing: 0, duration: 2000 });
+      //       } else if (tileset.boundingVolume?.region) {
+      //         const region = tileset.boundingVolume.region;
+      //         const [west, south, east, north] = region;
+      //         const centerLng = ((west + east) / 2) * (180 / Math.PI);
+      //         const centerLat = ((south + north) / 2) * (180 / Math.PI);
+      //         if (mapContext?.map) mapContext.map.flyTo({ center: [centerLng, centerLat], zoom: 10, pitch: 60, bearing: 0, duration: 2000 });
+      //       } else {
+      //         if (mapContext?.map) mapContext.map.flyTo({ center: [-100, 40], zoom: 6, pitch: 60, bearing: 0, duration: 2000 });
+      //       }
+      //     }
+      //   });
+      //   newLayers.push(pointCloudLayer);
+      //   break;
+      // }
+      case 'raster': {
+        const bounds = calculateGeoJSONBounds(layerData.features);
+        const rasterLayers = layerData.features.slice(0, 1).map((feature, index) => {
+          const { collection, id: itemId, properties } = feature;
+          const tileUrl = buildRasterTileUrl(collection, itemId, { assets: 'cog_default', colormap: 'plasma', rescale: '19816169791488, 7981616979148800', nodata: '-9999' });
+          return new TileLayer({
+            id: getLayerId('raster', `${datasetId}-${index}-${itemId}`),
+            data: tileUrl,
+            minZoom: 0, maxZoom: 19, tileSize: 256, visible: visible, opacity: 0.9, pickable: true,
+            renderSubLayers: props => {
+              const { bbox: { west, south, east, north } } = props.tile;
+              return new BitmapLayer({ ...props, data: null, image: props.data, bounds: [west, south, east, north], modelMatrix: new Matrix4().translate([0, 0, 100000]), });
+            },
+            onClick: (info) => { if (onStationClick) onStationClick({ type: 'raster', feature, tile: info.tile, coordinate: info.coordinate, datetime: properties?.datetime }); }
+          });
+        });
+        newLayers.push(...rasterLayers);
+        if (bounds && mapContext?.map) {
+          setTimeout(() => {
+            const isRegional = bounds && (bounds.maxLng - bounds.minLng) < 100 && (bounds.maxLat - bounds.minLat) < 50;
+            if (isRegional) zoomToBounds(mapContext.map, bounds, { padding: 20, maxZoom: 8, pitch: 0, bearing: 0 });
+            else mapContext.map.flyTo({ center: [0, 30], zoom: 2, pitch: 0, bearing: 0, duration: 2000 });
+          }, 500);
+        }
+        break;
       }
+      case 'netcdf-2d': {
+        const { conceptId, datetime, variable, bounds, ...rest } = layerData;
+        if (!conceptId || !datetime || !variable) {
+          console.warn('NetCDF 2D layer requires conceptId, datetime, and variable');
+          newLayers = [];
+          break;
+        }
+        const tileUrl = buildNetCDF2DTileUrl(conceptId, datetime, variable, rest);
+        const netcdfLayer = new TileLayer({
+          id: getLayerId('netcdf-2d', datasetId),
+          data: tileUrl,
+          minZoom: 0, maxZoom: 19, tileSize: 256, visible: visible, opacity: 0.8, pickable: true,
+          renderSubLayers: props => {
+            const { bbox: { west, south, east, north } } = props.tile;
+            return new BitmapLayer({ ...props, data: null, image: props.data, bounds: [west, south, east, north] });
+          },
+          onClick: (info) => { if (onStationClick) onStationClick({ type: 'netcdf-2d', conceptId, datetime, variable, tile: info.tile, coordinate: info.coordinate, layerData }); },
+          onTileLoad: (tile) => console.log('NetCDF tile loaded:', tile),
+          onTileError: (error) => console.error('NetCDF tile load error:', error)
+        });
+        newLayers.push(netcdfLayer);
+        if (mapContext?.map) {
+          setTimeout(() => {
+            if (bounds && bounds.minLng !== undefined && bounds.maxLng !== undefined) zoomToBounds(mapContext.map, bounds, { padding: 20, maxZoom: 8, pitch: 0, bearing: 0 });
+            else mapContext.map.flyTo({ center: [0, 30], zoom: 3, pitch: 0, bearing: 0, duration: 2000 });
+          }, 500);
+        }
+        break;
+      }
+      case 'feature': {
+        const geojsonData = layerData;
+        const stationBounds = calculateGeoJSONBounds(layerData.features);
+        const iconSvg = `<svg fill="#2496ED" width="30px" height="30px" viewBox="-51.2 -51.2 614.40 614.40" xmlns="http://www.w3.org/2000/svg"><g id="SVGRepo_bgCarrier" stroke-width="0"></g><g id="SVGRepo_tracerCarrier" stroke-linecap="round" stroke-linejoin="round" stroke="#000000" stroke-width="10.24"><path d="M172.268 501.67C26.97 291.031 0 269.413 0 192 0 85.961 85.961 0 192 0s192 85.961 192 192c0 77.413-26.97 99.031-172.268 309.67-9.535 13.774-29.93 13.773-39.464 0zM192 272c44.183 0 80-35.817 80-80s-35.817-80-80-80-80 35.817-80 80 35.817 80 80 80z"></path></g><g id="SVGRepo_iconCarrier"><path d="M172.268 501.67C26.97 291.031 0 269.413 0 192 0 85.961 85.961 0 192 0s192 85.961 192 192c0 77.413-26.97 99.031-172.268 309.67-9.535 13.774-29.93 13.773-39.464 0zM192 272c44.183 0 80-35.817 80-80s-35.817-80-80-80-80 35.817-80 80 35.817 80 80 80z"></path></g></svg>`;
+        const svgToDataURL = (svg) => `data:image/svg+xml;charset=utf-8,${encodeURIComponent(svg)}`;
+        const iconData = geojsonData.features.map(feature => ({ ...feature.properties, coordinates: feature.geometry.coordinates, position: feature.geometry.coordinates, feature: feature }));
+        const stationLayer = new IconLayer({
+          id: getLayerId('station', datasetId),
+          data: iconData,
+          pickable: true, visible: visible,
+          getIcon: d => ({ url: svgToDataURL(iconSvg), width: 30, height: 30, anchorY: 30, anchorX: 15 }),
+          getPosition: d => d.position,
+          getSize: 24, sizeScale: 1, sizeMinPixels: 16, sizeMaxPixels: 32,
+          autoHighlight: true, highlightColor: [255, 255, 255, 100],
+          onClick: (info) => { if (info.object && onStationClick) handleStationClick(info.object.feature || info.object, onStationClick); },
+          getTooltip: ({object}) => object && { html: `<div><strong>Station:</strong> ${object.name || object.id || 'Unknown'}</div>`, style: { backgroundColor: '#f8f8f8', fontSize: '0.8em', color: '#333' } }
+        });
+        newLayers.push(stationLayer);
+        if (stationBounds && mapContext?.map && stationBounds.minLng !== Infinity && stationBounds.maxLng !== -Infinity) {
+          setTimeout(() => {
+            if (geojsonData.features.length === 1) {
+              const coords = geojsonData.features[0].geometry.coordinates;
+              if (coords && coords.length === 2 && !isNaN(coords[0]) && !isNaN(coords[1])) mapContext.map.flyTo({ center: coords, zoom: 12, duration: 2000 });
+            } else {
+              zoomToBounds(mapContext.map, stationBounds, { padding: 50, maxZoom: 15, pitch: 0, bearing: 0 });
+            }
+          }, 500);
+        }
+        break;
+      }
+      default: {
+        newLayers = [];
+        break;
+      }
+    }
+    
+    // This is now the single point of truth for updating our state.
+    // It adds or overwrites the layers for the given datasetId.
+    setManagedLayers(prevManaged => {
+      console.log(`Setting/updating layers for dataset: ${datasetId}`);
+      return {
+        ...prevManaged,
+        [datasetId]: newLayers,
+      };
     });
+      
+  }, [
+    layerData, activeLayerUrl, galleryType, datasetId, visible,
+    onStationClick, mapContext // mapContext is needed for flyTo calls
+  ]);
+    
+  // The second, problematic useEffect for cleanup has been removed entirely.
+  // The logic above now handles all cases correctly.
 
-    // Update the Deck.gl overlay with the new layer.
-    // This automatically replaces any previous layers.
-    deckOverlay.setProps({ layers: [geoJsonLayer] });
-    console.log(`Deck.gl layer updated with URL: ${activeLayerUrl}`);
-
-  }, [activeLayerUrl, deckOverlay, onStationClick]); // This effect re-runs only when these props change.
-
-  // This component only manages the map, so it renders nothing.
   return null;
 }

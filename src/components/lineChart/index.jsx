@@ -18,7 +18,7 @@ export const LineChart = ({ data, labels, legend, labelX, labelY, color="#ff6384
       data: data,
       backgroundColor: color + '20',
       borderColor: color,
-      showLine: false,
+      showLine: true,
       xAxisID: `x-${index}`,
     };
     if (separateY) {

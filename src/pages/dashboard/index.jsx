@@ -4,9 +4,7 @@ import Paper from '@mui/material/Paper';
 import IconButton from '@mui/material/IconButton';
 import ChevronLeftIcon from '@mui/icons-material/ChevronLeft';
 import ChevronRightIcon from '@mui/icons-material/ChevronRight';
-import Stack from '@mui/material/Stack'; // Import Stack for clean layout
-
-// --- Make sure all your components are imported correctly ---
+import Stack from '@mui/material/Stack'; 
 import {
   MainMap,
   MarkerFeature,
@@ -20,19 +18,26 @@ import {
   FilterByDate,
   VizItemAnimation,
 } from '@components';
-import { DeckGlLayerManager } from '../../components/map/deckLayer'; // Adjust path as needed
-import { DatasetGallery } from '../../components/ui/datasetGallery'; // Adjust path
+
+import { DeckGlLayerManager } from '../../components/map/deckLayer';
+import { DatasetGallery } from '../../components/ui/datasetGallery';
 import { RecordDetailView } from '@components/detailView';
 import SpatialSubsetManager from '@components/ui/spatialSubsetManager';
 
+// Import chart components
+import { ChartProvider, useChart } from '../../context/chartContext';
+import { ChartTools, ChartToolsLeft, ChartToolsRight, CloseButton, ZoomResetTool } from '@components/chartComponents';
+
+// Import the station chart hook
+import { useStationChart } from '../../hooks/useStationChart';
+
 import styled from 'styled-components';
 import './index.css';
+import { LineChart } from '../../components/lineChart';
 
 const TITLE = 'Air Quality Dashboard';
-const DESCRIPTION =
-  'Some one paragraph length of description. Some one paragraph length of description. Some one paragraph length of description. Some one paragraph length of description. Some one paragraph length of description. Some one paragraph length of description. Some one paragraph length of description. Some one paragraph length of description. Some one paragraph length of description. Some one paragraph length of description.';
+const DESCRIPTION = "";
 
-// This styled-component might still be used elsewhere, but not for main sidebar layout
 const HorizontalLayout = styled.div`
   width: 90%;
   display: flex;
@@ -53,88 +58,103 @@ export function Dashboard({
   setZoomLevel,
   loadingData,
 }) {
-  // --- All your existing state variables ---
-  const [regions, setRegions] = useState([]);
+  
   const [vizItems, setVizItems] = useState([]);
-  const [selectedRegionId, setSelectedRegionId] = useState('');
-  const prevSelectedRegionId = useRef('');
-  const [selectedVizItems, setSelectedVizItems] = useState([]);
   const [hoveredVizLayerId, setHoveredVizLayerId] = useState('');
   const [filteredVizItems, setFilteredVizItems] = useState([]);
   const [isSidebarOpen, setIsSidebarOpen] = useState(true); 
-  const [vizItemIds, setVizItemIds] = useState([]);
   const [vizItemsForAnimation, setVizItemsForAnimation] = useState([]);
-  const [collectionMetadata, setCollectionMetadata] = useState({});
-  const [showVisualizationLayers, setShowVisualizationLayers] = useState(true);
-  const [showMarkerFeature, setShowMarkerFeature] = useState(true);
-  const [visualizationLayers, setVisualizationLayers] = useState(true);
   const [VMAX, setVMAX] = useState(100);
   const [VMIN, setVMIN] = useState(-92);
   const [colormap, setColormap] = useState('default');
   const [assets, setAssets] = useState('rad');
   const [openDrawer, setOpenDrawer] = useState(true);
+  const [isChartVisible, setIsChartVisible] = useState(false);
   const collectionId = data?.[0]?.collection;
+
+  const [allLayers, setAllLayers] = useState([]);
   const [activeLayerUrl, setActiveLayerUrl] = useState(null);
-
-  // --- NEW STATE for the selected record ---
   const [selectedRecord, setSelectedRecord] = useState(null);
+  const [layerData, setLayerData] = useState(null);
 
-  // --- HANDLER FUNCTIONS ---
+  const { 
+    selectedStation, 
+    chartData, 
+    chartLabels, 
+    isLoading, 
+    error, 
+    showStationChart, 
+    hideStationChart, 
+    isVisible 
+  } = useStationChart();
+  
   const onLayerSelect = (url) => {
     setActiveLayerUrl(url);
+    //emit the custom event called 'layerSelected' with the url
+   // const event = new CustomEvent('layerSelected', { detail: url }, );
+
+    const myCustomEvent = new CustomEvent("layerSelected", {
+         detail: { allLayers:allLayers , url: url },
+         bubbles: true, // Allows event to bubble up the DOM tree
+         cancelable: true // Allows event to be canceled
+     });
+
+    window.dispatchEvent(myCustomEvent);  
+    console.log("event dispatched Layer selected:", myCustomEvent);
   };
   
-  const onRecordSelect = (record) => {
-    console.log("onRecordSelect called in Dashboard with:", record);
-    setSelectedRecord(record);
-  };
+  const onRecordSelect = (dataWithMetadata) => {
+    if (dataWithMetadata.datasetInfo && dataWithMetadata.galleryType) {
+      const datasetInfo = dataWithMetadata.datasetInfo;
+      const actualData = { ...dataWithMetadata, datasetInfo: undefined };
+      
+      setSelectedRecord(datasetInfo);
+      setLayerData(actualData);
+    } else {
+      setSelectedRecord(dataWithMetadata);
+      setLayerData(dataWithMetadata);
+    }
 
-  const handleCloseRecordDetail = () => {
-    setSelectedRecord(null);
-  };
-
-  const handleStationClick = (feature) => {
-      console.log("Station clicked on map:", feature);
+    setOpenDrawer(false);
   };
   
-  // ... All your other existing handlers and useEffects ...
-  const handleSelectedVizItem = (vizItemId) => {
-    if (!dataTree.current || !Object.keys(dataTree.current).length || !vizItemId) return;
-    // ... function logic
+  // Simple station click handler
+  const handleStationClick = (stationFeature) => {
+    console.log("Station clicked in Dashboard:", stationFeature);
+    showStationChart(stationFeature);
   };
-
-  const handleSelectedVizLayer = (vizLayerId) => {
-    // ... function logic
-  };
-
-  const handleAnimationReady = (vizItemId) => {
-    // ... function logic
-  };
-
-  const handleSelectedVizItemSearch = (vizItemId) => {
-    // ... function logic
-  };
-
-  const handleResetHome = () => {
-    // ... function logic
-  };
-
+  
   useEffect(() => {
     if (!dataTree.current || !data) return;
     const newVizItems = {};
     const testData = data.slice(0, 10);
     testData.forEach((items) => {
-        newVizItems[items.id] = items;
+      newVizItems[items.id] = items;
     });
     setVizItems(newVizItems);
   }, [data, dataTree]);
   
-  // ... other useEffects ...
-
   const onFilteredVizItems = (filteredVizItems) => {
-    //   setFilteredVizItems(filteredVizItems);
   };
-  
+
+  useEffect(() => {
+    fetch('/plugins/pointcloud/events.js')
+      .then(response => {
+        if (!response.ok) {
+          throw new Error('Network response was not ok');
+        }
+        return response.text();
+      })
+      .then(eventsCode => {
+        // eslint-disable-next-line no-eval
+        eval(eventsCode);
+      })
+      .catch(err => {
+        console.error('Failed to load or eval events.js:', err);
+      });
+  }, []);
+
+
   return (
     <Box className='fullSize'>
       <IconButton
@@ -142,7 +162,7 @@ export function Dashboard({
         sx={{
           position: 'absolute',
           top: '20px',
-          left: isSidebarOpen ? '420px' : '20px',
+          left: isSidebarOpen ? '320px' : '20px', 
           zIndex: 1301,
           backgroundColor: 'white',
           transition: 'left 0.2s ease-in-out',
@@ -151,12 +171,13 @@ export function Dashboard({
       >
         {isSidebarOpen ? <ChevronLeftIcon /> : <ChevronRightIcon />}
       </IconButton>
+      
       <div id='dashboard-map-container'>
         <MainMap>
           <Paper 
             className='title-container' 
             sx={{
-              width: '410px',
+              width: '310px',
               transition: 'transform 0.2s ease-in-out, width 0.2s ease-in-out',
               transform: isSidebarOpen ? 'translateX(0)' : 'translateX(-100%)',
               display: 'flex',
@@ -166,52 +187,155 @@ export function Dashboard({
             }} 
             elevation={16}
           >
-            <Stack sx={{ p: 2, overflowY: 'auto' }} spacing={2}>
-              
+            <Stack sx={{ p: 1.5, overflowY: 'auto' }} spacing={1.5}> {/* Reduced padding and spacing */}
               <Title title={TITLE} description={DESCRIPTION} />
               <Search
                 vizItems={Object.values(vizItems)}
-                onSelectedVizItemSearch={handleSelectedVizItemSearch}
+                onSelectedVizItemSearch={console.log("")}
               />
               <FilterByDate
                 vizItems={Object.values(vizItems)}
                 onFilteredVizItems={onFilteredVizItems}
               />
               <SpatialSubsetManager />
-
               <RecordDetailView 
                 record={selectedRecord} 
-                onClose={handleCloseRecordDetail} 
+                onClose={console.log("")} 
               />
-              
             </Stack>
           </Paper>
-
+          
           <MapZoom zoomLocation={zoomLocation} zoomLevel={zoomLevel} />
           <MapControls
             openDrawer={openDrawer}
             setOpenDrawer={setOpenDrawer}
-            handleResetHome={handleResetHome}
+            handleResetHome={console.log("")}
           />
           <MarkerFeature
             vizItems={Object.values(vizItems)}
-            onSelectVizItem={handleSelectedVizItem}
+            onSelectVizItem={console.log("")}
           />
           <DeckGlLayerManager
             activeLayerUrl={activeLayerUrl}
+            layerData={layerData}
+            galleryType={layerData?.galleryType || selectedRecord?.type}
+            datasetId={selectedRecord?.id} 
             onStationClick={handleStationClick}
+            visible={true} 
           />
+          
+          {isVisible && (
+            <div style={{
+              position: 'absolute',
+              bottom: '20px',
+              left: '20px',
+              width: '100%',
+              height: '350px',
+              backgroundColor: 'white',
+              border: '1px solid #000',
+              borderRadius: '8px',
+              zIndex: 1000,
+              padding: '0', 
+              boxShadow: '0 4px 6px rgba(0, 0, 0, 0.1)',
+              transition: 'left 0.2s ease-in-out',
+              display: 'flex',
+              flexDirection: 'column',
+            }}>
+              {/* Show loading/error states */}
+              {isLoading && (
+                <div style={{ 
+                  display: 'flex', 
+                  alignItems: 'center', 
+                  justifyContent: 'center', 
+                  height: '100%',
+                  fontSize: '16px' 
+                }}>
+                  <LoadingSpinner />
+                </div>
+              )}
+              
+              {error && (
+                <div style={{ 
+                  display: 'flex', 
+                  flexDirection: 'column',
+                  alignItems: 'center', 
+                  justifyContent: 'center', 
+                  height: '100%',
+                  color: 'red',
+                  fontSize: '16px' 
+                }}>
+                  <p>Error loading data: {error.message}</p>
+                  <CloseButton handleClose={hideStationChart} />
+                </div>
+              )}
+              
+              {!isLoading && !error && chartData && chartData.length > 0 && (
+                <ChartProvider>
+                  <div style={{ 
+                    display: 'flex', 
+                    justifyContent: 'space-between', 
+                    alignItems: 'center',
+                    padding: '8px 16px',
+                    borderBottom: '1px solid #eee',
+                    minHeight: '50px'
+                  }}>
+                    <h3 style={{ 
+                      margin: 0, 
+                      fontSize: '20px', 
+                      color: '#333',
+                      fontWeight: '600'
+                    }}>
+                      {selectedStation && `Station ${selectedStation.station_code} - ${selectedStation.city || 'Unknown'}`}
+                    </h3>
+                    <div style={{ display: 'flex', gap: '8px', alignItems: 'center' }}>
+                      <ZoomResetTool />
+                      <CloseButton handleClose={hideStationChart} />
+                    </div>
+                  </div>
+                  
+                  {/* LineChart Container - Full Size */}
+                  <div style={{ flex: 1, padding: '16px' }}>
+                    <LineChart 
+                      data={chartData}
+                      labels={chartLabels}
+                      legend="Line chart"
+                      labelX="Date"
+                      labelY="Value (μg/m³)"
+                      color="#42a5f5"
+                      index={0}
+                      separateY={false}
+                    />
+                  </div>
+                </ChartProvider>
+              )}
+              
+              {/* Show message when no data */}
+              {!isLoading && !error && (!chartData || chartData.length === 0) && (
+                <div style={{ 
+                  display: 'flex', 
+                  flexDirection: 'column',
+                  alignItems: 'center', 
+                  justifyContent: 'center', 
+                  height: '100%',
+                  fontSize: '16px' 
+                }}>
+                  <p>No data available for this station</p>
+                  <CloseButton handleClose={hideStationChart} />
+                </div>
+              )}
+            </div>
+          )}
+          
         </MainMap>
-
+        
         <VizItemAnimation
-            VMIN={VMIN}
-            VMAX={VMAX}
-            colormap={colormap}
-            assets={assets}
-            vizItems={vizItemsForAnimation}
+          VMIN={VMIN}
+          VMAX={VMAX}
+          colormap={colormap}
+          assets={assets}
+          vizItems={vizItemsForAnimation}
         />
-
-        {/* --- CORRECTED PROP PASSING --- */}
+        
         <PersistentDrawerRight
           open={openDrawer}
           setOpen={setOpenDrawer}
@@ -220,14 +344,15 @@ export function Dashboard({
           metaDataTree={metaDataTree}
           collectionId={collectionId}
           vizItemsMap={vizItems}
-          handleSelectedVizItems={handleSelectedVizLayer}
+          handleSelectedVizItems={console.log("")}
           hoveredVizItemId={hoveredVizLayerId}
           setHoveredVizItemId={setHoveredVizLayerId}
+          onLayerSelect={onLayerSelect}
+          onRecordSelect={onRecordSelect}
         >
-          {/* By passing the gallery as a child, the drawer can render it,
-              and the gallery has access to the functions defined in Dashboard. */}
           <DatasetGallery 
             onLayerSelect={onLayerSelect}
+            setAllLayers={setAllLayers}
             onRecordSelect={onRecordSelect}
           />
         </PersistentDrawerRight>
