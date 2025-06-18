@@ -27,7 +27,7 @@ import { useStationChart } from '../../hooks/useStationChart';
 import './index.css';
 import { LineChart } from '../../components/lineChart';
 
-const TITLE = 'Air Quality Dashboard';
+const TITLE = 'RSIG Dashboard';
 const DESCRIPTION = "";
 
 export function Dashboard({
@@ -42,8 +42,6 @@ export function Dashboard({
   const [selectedRecord, setSelectedRecord] = useState(null);
   const [layerData, setLayerData] = useState(null);
   const [layerDisplayList, setLayerDisplayList] = useState([]);
-
-
   const {
     selectedStation,
     chartData,
@@ -226,13 +224,14 @@ export function Dashboard({
             layerOpacityList={layerDisplayList}
           />
 
-          {isVisible && (
+          {isVisible && selectedStation &&(
             <div style={{
               position: 'absolute',
-              bottom: '20px',
-              left: '20px',
-              width: '100%',
-              height: '350px',
+              bottom: '10px',
+              left: '10px',
+              width: '99%',
+              height:'300px',
+              maxHeight: '300px',
               backgroundColor: 'white',
               border: '1px solid #000',
               borderRadius: '8px',
@@ -247,12 +246,11 @@ export function Dashboard({
               {error && ( <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', height: '100%', color: 'red', fontSize: '16px' }}> <p>Error loading data: {error.message}</p> <CloseButton handleClose={hideStationChart} /> </div> )}
               {!isLoading && !error && chartData && chartData.length > 0 && (
                 <ChartProvider>
-                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '8px 16px', borderBottom: '1px solid #eee', minHeight: '50px' }}>
+                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '16px 8px', borderBottom: '1px solid #eee', minHeight: '50px' }}>
                     <h3 style={{ margin: 0, fontSize: '20px', color: '#333', fontWeight: '600' }}>
                       {selectedStation && `Station ${selectedStation.station_code} - ${selectedStation.city || 'Unknown'}`}
                     </h3>
-                    <div style={{ display: 'flex', gap: '8px', alignItems: 'center' }}>
-                      <ZoomResetTool />
+                    <div style={{ display: 'flex', gap: '8px', alignItems: 'center', zIndex:'10000' }}>
                       <CloseButton handleClose={hideStationChart} />
                     </div>
                   </div>
@@ -270,12 +268,12 @@ export function Dashboard({
                   </div>
                 </ChartProvider>
               )}
-              {!isLoading && !error && (!chartData || chartData.length === 0) && (
+              {/* {!isLoading && !error && (!chartData || chartData.length === 0) && (
                 <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', height: '100%', fontSize: '16px' }}>
                   <p>No data available for this station</p>
                   <CloseButton handleClose={hideStationChart} />
                 </div>
-              )}
+              )} */}
             </div>
           )}
 

@@ -2,7 +2,8 @@ import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
 import { faXmark, faRotateLeft, faCircleInfo, faExternalLink } from '@fortawesome/free-solid-svg-icons';
 import { useState, useEffect } from 'react';
 import { useChart } from '../../context/chartContext';
-
+import IconButton from '@mui/material/IconButton';
+import CloseIcon from '@mui/icons-material/Close';
 
 export const ChartTitle = ({ children }) => {
   // Displays the title of the chart using the children prop
@@ -62,14 +63,19 @@ export const ZoomResetTool = () => {
 
 
 export const CloseButton = ({ handleClose }) => (
-  // Closes the chart when the close icon is clicked
-  // Receives the handleClose function as a prop
-  <FontAwesomeIcon
-    id="chart-close-button"
-    icon={faXmark}
-    title="Close"
-    onClick={handleClose}
-  />
+    <IconButton
+          aria-label="close"
+          onClick={handleClose}
+          sx={{
+            position: 'absolute',
+            right: 4,
+            top: 4,
+            color: (theme) => theme.palette.grey[500],
+          }}
+          size="small"
+        >
+          X
+        </IconButton>
 );
 
 

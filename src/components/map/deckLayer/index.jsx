@@ -157,7 +157,7 @@ export function DeckGlLayerManager({
           if (lev === undefined) return;
           
           const zOffset = lev * 10000;
-          
+          const BOUNDS = [-125.0, 24.5, -66.5, 49.5];
           const netcdfLayer = new TileLayer({
             id: `${getLayerId('netcdf-2d', datasetId)}-lev-${lev}`,
             data: tileUrl,
@@ -169,6 +169,12 @@ export function DeckGlLayerManager({
             opacity: dynamicOpacity,
             renderSubLayers: props => {
               const { bbox: { west, south, east, north } } = props.tile;
+              if (
+                east < BOUNDS[0] || west > BOUNDS[2] ||
+                north < BOUNDS[1] || south > BOUNDS[3]
+              ) {
+                return null;
+              }
               return new BitmapLayer({
                 ...props,
                 opacity: dynamicOpacity,
@@ -201,8 +207,7 @@ export function DeckGlLayerManager({
         });
         if (mapContext?.map) {
           setTimeout(() => {
-            if (bounds && bounds.minLng !== undefined && bounds.maxLng !== undefined) zoomToBounds(mapContext.map, bounds, { padding: 20, maxZoom: 8, pitch: 0, bearing: 0 });
-            else mapContext.map.flyTo({ center: [0, 30], zoom: 3, pitch: 0, bearing: 0, duration: 2000 });
+            mapContext.map.flyTo({ center: [-98.5795, 39.8283], zoom: 2, pitch: 0, bearing: 0, duration: 2000 });
           }, 500);
         }
         break;
@@ -273,22 +278,22 @@ export function DeckGlLayerManager({
           if (layer.props.opacity === newOpacity) return layer;
           
           // Top-level layer opacity
-                 const originalRender = layer.props.renderSubLayers;
-
-        const cloned = layer.clone({
-          opacity: newOpacity,
-          ...(originalRender && {
-            renderSubLayers: props => {
-              const sub = originalRender(props);
-              return sub?.clone
+          const originalRender = layer.props.renderSubLayers;
+          
+          const cloned = layer.clone({
+            opacity: newOpacity,
+            ...(originalRender && {
+              renderSubLayers: props => {
+                const sub = originalRender(props);
+                return sub?.clone
                 ? sub.clone({ opacity: newOpacity })
                 : sub;
-            }
-          })
-        });
-
-        return cloned;
-
+              }
+            })
+          });
+          
+          return cloned;
+          
         });
       }
       
