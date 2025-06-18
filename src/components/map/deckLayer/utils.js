@@ -135,7 +135,12 @@ export const buildRasterTileUrl = (collection, itemId, options = {}) => {
     `&nodata=${nodata}`;
 };
 
-export const buildNetCDF2DTileUrl = (conceptId, datetime, variable, options = {}) => {
+export const buildNetCDF2DTileUrl = (conceptId, datetime, variable, varValues, options = {}) => {
+  // Return an empty array if varValues is not provided or is empty
+  if (!varValues || Object.keys(varValues).length === 0) {
+    return [];
+  }
+
   const {
     scale = '1',
     colormap = 'reds',
@@ -146,7 +151,8 @@ export const buildNetCDF2DTileUrl = (conceptId, datetime, variable, options = {}
 
   const baseUrl = 'https://staging.openveda.cloud/api/titiler-cmr/tiles/WebMercatorQuad/{z}/{x}/{y}';
   
-  const params = new URLSearchParams({
+  // Create a base set of parameters that will be common to all URLs
+  const baseParams = {
     scale,
     concept_id: conceptId,
     datetime: datetime,
@@ -155,9 +161,26 @@ export const buildNetCDF2DTileUrl = (conceptId, datetime, variable, options = {}
     colormap_name: colormap,
     rescale: rescale,
     ...additionalParams
-  });
+  };
 
-  return `${baseUrl}?${params.toString()}`;
+  const urls = [];
+
+  // Iterate over the keys in the varValues object (e.g., 'lev')
+  for (const [dimensionKey, dimensionValues] of Object.entries(varValues)) {
+    // For each key, iterate over its array of values (e.g., 10, 100, 1000)
+    for (const value of dimensionValues) {
+      // Create a new URLSearchParams object for each unique URL
+      const individualParams = new URLSearchParams(baseParams);
+      
+      // Add the specific 'expression' parameter for the current value
+      individualParams.set('expression', `${dimensionKey}=${value}`);
+
+      // Construct the full URL and add it to our results array
+      urls.push(`${baseUrl}?${individualParams.toString()}`);
+    }
+  }
+
+  return urls;
 };
 
 
