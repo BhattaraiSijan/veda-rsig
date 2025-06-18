@@ -88,13 +88,13 @@ export function DeckGlLayerManager({
       //     getPointColor: [0, 255, 0, 255],
       //     onClick: (info) => { if (info.object && onStationClick) onStationClick(info.object); },
       //     onTilesetLoad: (tileset) => {
-      //       const bounds = layerData.asset.ept.bounds;
+        //       const bounds = layerData.asset.ept.bounds;
       //       console.log("Point cloud bounds::::", bounds);
       //       const [minX, minY, minZ, maxX, maxY, maxZ] = bounds;
       //       const centerX = (minX + maxX) / 2;
       //       const centerY = (minY + maxY) / 2;
       //       const centerLng = (centerX / 20037508.34) * 180; 
-            
+      
       //       const centerLat = (180 / Math.PI) * (2 * Math.atan(Math.exp(centerY / 6378137.0)) - Math.PI / 2);
       //       console.log(centerLng, centerLat)
       //       if (mapContext?.map) {
@@ -144,28 +144,64 @@ export function DeckGlLayerManager({
       case 'netcdf-2d': {
         const { conceptId, datetime, variable, bounds, ...rest } = layerData;
         const varValues = {'lev':[10,100,1000]};
+
         if (!conceptId || !datetime || !variable) {
           console.warn('NetCDF 2D layer requires conceptId, datetime, and variable');
           newLayers = [];
           break;
         }
-        const tileUrl = buildNetCDF2DTileUrl(conceptId, datetime, variable, varValues, rest);
+        const tileUrls = buildNetCDF2DTileUrl(conceptId, datetime, variable, varValues, rest);
         
-        const netcdfLayer = new TileLayer({
-          id: getLayerId('netcdf-2d', datasetId),
-          data: tileUrl,
-          minZoom: 0, maxZoom: 19, tileSize: 256, visible: visible, pickable: true,
+        const levValues = varValues?.lev || [];
+        
+        tileUrls.forEach((tileUrl, index) => {
+          const lev = levValues[index];
           
-          opacity: dynamicOpacity,
-          renderSubLayers: props => {
-            const { bbox: { west, south, east, north } } = props.tile;
-            return new BitmapLayer({ ...props, opacity:dynamicOpacity, data: null, image: props.data, bounds: [west, south, east, north], modelMatrix: new Matrix4().translate([0, 0, 0]) });
-          },
-          onClick: (info) => { if (onStationClick) onStationClick({ type: 'netcdf-2d', conceptId, datetime, variable, tile: info.tile, coordinate: info.coordinate, layerData }); },
-          onTileLoad: (tile) => console.log('NetCDF tile loaded:', tile),
-          onTileError: (error) => console.error('NetCDF tile load error:', error)
+          if (lev === undefined) return;
+          
+          const zOffset = lev * 1000;
+          
+          const netcdfLayer = new TileLayer({
+            id: `${getLayerId('netcdf-2d', datasetId)}-lev-${lev}`,
+            data: tileUrl,
+            minZoom: 0,
+            maxZoom: 19,
+            tileSize: 256,
+            visible: visible,
+            pickable: true,
+            opacity: dynamicOpacity,
+            renderSubLayers: props => {
+              const { bbox: { west, south, east, north } } = props.tile;
+              return new BitmapLayer({
+                ...props,
+                opacity: dynamicOpacity,
+                data: null,
+                image: props.data,
+                bounds: [west, south, east, north],
+                modelMatrix: new Matrix4().translate([0, 0, zOffset])
+              });
+            },
+            
+            onClick: (info) => {
+              if (onStationClick) {
+                onStationClick({
+                  type: 'netcdf-2d',
+                  conceptId,
+                  datetime,
+                  variable,
+                  lev: lev,
+                  tile: info.tile,
+                  coordinate: info.coordinate,
+                  layerData
+                });
+              }
+            },
+            onTileLoad: (tile) => console.log(`NetCDF tile loaded for lev=${lev}:`, tile),
+            onTileError: (error) => console.error(`NetCDF tile load error for lev=${lev}:`, error)
+          });
+          
+          newLayers.push(netcdfLayer);
         });
-        newLayers.push(netcdfLayer);
         if (mapContext?.map) {
           setTimeout(() => {
             if (bounds && bounds.minLng !== undefined && bounds.maxLng !== undefined) zoomToBounds(mapContext.map, bounds, { padding: 20, maxZoom: 8, pitch: 0, bearing: 0 });
@@ -212,6 +248,7 @@ export function DeckGlLayerManager({
       }
     }
     setManagedLayers(prevManaged => {
+      console.log("ALL the layers:::",newLayers);
       return {
         ...prevManaged,
         [datasetId]: newLayers,
