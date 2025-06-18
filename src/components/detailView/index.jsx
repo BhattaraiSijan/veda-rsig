@@ -31,21 +31,71 @@ const LayerCard = ({ dataset, index, onOpacityChange, onRemove, isDragging }) =>
     onOpacityChange(id, newValue);
   };
 
-  const getStaticLegend = (type) => {
-    return (
-          <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, width: '100%' }}>
-            <Box sx={{
+const getStaticLegend = (type) => {
+  switch (type) {
+    case 'raster': // For OMI (Updated Legend)
+      return (
+        <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, width: '100%' }}>
+          <Box
+            sx={{
               flex: 1,
               height: 12,
-              background: 'linear-gradient(to right, #440154, #31688e, #35b779, #fde725)',
-              borderRadius: 1
-            }} />
-            <Typography variant="caption" sx={{ fontSize: '0.7rem', color: 'text.secondary' }}>
-              Low to High
-            </Typography>
-          </Box>
-        );
-  };
+              // New gradient: Blue -> Green -> Yellow -> Red
+              background: 'linear-gradient(to right, #2c7bb6, #abd9e9, #ffffbf, #fdae61, #d7191c)',
+              borderRadius: 1,
+            }}
+          />
+          <Typography variant="caption" sx={{ fontSize: '0.7rem', color: 'text.secondary' }}>
+            Low to High
+          </Typography>
+        </Box>
+      );
+
+    case 'feature': // For AQS
+      return null;
+
+    case 'point-cloud':
+      const legendItems = [
+        { color: 'red', label: '0 - 500' },
+        { color: 'green', label: '500 - 10,000' },
+        { color: 'yellow', label: '10,000 - 60,000' },
+        { color: 'blue', label: '> 60,000' },
+      ];
+      return (
+        <Box sx={{ display: 'flex', flexDirection: 'row', flexWrap: 'wrap', gap: 0.2 }}>
+          {legendItems.map((item) => (
+            <Box key={item.label} sx={{ display: 'flex', alignItems: 'center', gap: 0.1 }}>
+              <Box sx={{ width: 12, height: 12, backgroundColor: item.color, borderRadius: '2px' }} />
+              <Typography variant="caption" sx={{ fontSize: '0.5rem', color: 'text.secondary' }}>
+                {item.label}
+              </Typography>
+            </Box>
+          ))}
+        </Box>
+      );
+
+    case 'netcdf-2d': // For Tropess
+      return (
+        <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, width: '100%' }}>
+          <Box
+            sx={{
+              flex: 1,
+              height: 12,
+              background: 'linear-gradient(to right, #FFFFFF, #B22222)',
+              borderRadius: 1,
+              border: '1px solid #ccc'
+            }}
+          />
+          <Typography variant="caption" sx={{ fontSize: '0.7rem', color: 'text.secondary' }}>
+            Low to High
+          </Typography>
+        </Box>
+      );
+
+    default:
+      return null;
+  }
+};
 
   const open = Boolean(anchorEl);
 

@@ -144,7 +144,7 @@ export const buildNetCDF2DTileUrl = (conceptId, datetime, variable, options = {}
     ...additionalParams
   } = options;
 
-  const baseUrl = 'https://dev-titiler-cmr.delta-backend.com/tiles/WebMercatorQuad/{z}/{x}/{y}';
+  const baseUrl = 'https://staging.openveda.cloud/api/titiler-cmr/tiles/WebMercatorQuad/{z}/{x}/{y}';
   
   const params = new URLSearchParams({
     scale,
