@@ -35,7 +35,7 @@ const getStaticLegend = (type) => {
   switch (type) {
     case 'raster': // For OMI (Updated Legend)
       return (
-        <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, width: '100%' }}>
+        <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, width: '100%'}}>
           <Box
             sx={{
               flex: 1,
@@ -114,9 +114,7 @@ const getStaticLegend = (type) => {
           }}
         >
           <CardContent sx={{ p: 1.5, '&:last-child': { pb: 1.5 } }}>
-            {/* Top row with controls */}
             <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, mb: 1 }}>
-              {/* Drag handle */}
               <Box
                 {...provided.dragHandleProps}
                 sx={{
@@ -249,13 +247,12 @@ export function RecordDetailView({
       sx={{
         mt: 2,
         borderRadius: 2,
-        maxHeight: '400px',
+        maxHeight: '250px',
         overflow: 'hidden',
         display: 'flex',
         flexDirection: 'column'
       }}
     >
-      {/* Header */}
       <Box sx={{ p: 1.5, pb: 1, position: 'relative', borderBottom: 1, borderColor: 'divider' }}>
         <IconButton
           aria-label="close"

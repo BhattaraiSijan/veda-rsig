@@ -1,4 +1,3 @@
-// hooks/useStationChart.js - FIXED for your Chart.js LineChart
 import { useState, useCallback } from 'react';
 
 export function useStationChart() {
@@ -7,17 +6,14 @@ export function useStationChart() {
   const [chartLabels, setChartLabels] = useState([]);
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState(null);
-
+  const [isVisible, setIsVisible] = useState(true)
+  
   const showStationChart = useCallback(async (stationFeature) => {
     if (!stationFeature?.properties) return;
-    
     const station = {
       station_code: stationFeature.properties.station_code,
       city: stationFeature.properties.city,
-    };
-    
-    console.log('Loading station chart for:', station);
-    
+    };    
     setSelectedStation(station);
     setIsLoading(true);
     setError(null);
@@ -30,10 +26,8 @@ export function useStationChart() {
       
       setChartData(data);
       setChartLabels(labels);
-      console.log('Final data for Chart.js:', { data, labels });
       
     } catch (err) {
-      console.error('Error in showStationChart:', err);
       setError(err);
     } finally {
       setIsLoading(false);
@@ -47,6 +41,7 @@ export function useStationChart() {
     setChartLabels([]);
     setError(null);
     setIsLoading(false);
+    setIsVisible(false);
   }, []);
 
   return {
@@ -57,7 +52,7 @@ export function useStationChart() {
     error,
     showStationChart,
     hideStationChart,
-    isVisible: !!selectedStation
+    isVisible
   };
 }
 
