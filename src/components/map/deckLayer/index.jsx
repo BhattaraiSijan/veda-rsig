@@ -71,45 +71,47 @@ export function DeckGlLayerManager({
     
     let newLayers = [];
     switch (galleryType) {
-      case 'point-cloud': {
-        const pointCloudLayer = new Tile3DLayer({
-          id: getLayerId('pointcloud', datasetId),
-          data: activeLayerUrl,
-          pickable: true,
-          visible: visible,
-          pointSize: 2,
-          opacity: dynamicOpacity,
-          _subLayerProps: {
-            'points': { pointSize: 0.2, getColor: (d) => d.color || [0, 255, 0, 255], material: false, radiusPixels: 15, billboard: false, sizeScale: 1, sizeMinPixels: 8, sizeMaxPixels: 30 },
-            'mesh': { getColor: [0, 255, 0, 255], material: false, wireframe: false }
-          },
-          loadOptions: { '3d-tiles': { pointCloudColoration: { mode: 'RGB' } } },
-          getPointColor: [0, 255, 0, 255],
-          onClick: (info) => { if (info.object && onStationClick) onStationClick(info.object); },
-          onTilesetLoad: (tileset) => {
-            const bounds = layerData.asset.ept.bounds;
-            console.log("Point cloud bounds::::", bounds);
-            const [minX, minY, minZ, maxX, maxY, maxZ] = bounds;
-            const centerX = (minX + maxX) / 2;
-            const centerY = (minY + maxY) / 2;
-            const centerLng = (centerX / 20037508.34) * 180; 
+      //CALIPSO
+      // case 'point-cloud': {
+      //   const pointCloudLayer = new Tile3DLayer({
+      //     id: getLayerId('pointcloud', datasetId),
+      //     data: activeLayerUrl,
+      //     pickable: true,
+      //     visible: visible,
+      //     pointSize: 2,
+      //     opacity: dynamicOpacity,
+      //     _subLayerProps: {
+      //       'points': { pointSize: 0.2, getColor: (d) => d.color || [0, 255, 0, 255], material: false, radiusPixels: 15, billboard: false, sizeScale: 1, sizeMinPixels: 8, sizeMaxPixels: 30, opacity:dynamicOpacity },
+      //       'mesh': { getColor: [0, 255, 0, 255], material: false, wireframe: false, opacity:dynamicOpacity }
+      //     },
+      //     loadOptions: { '3d-tiles': { pointCloudColoration: { mode: 'RGB' } } },
+      //     getPointColor: [0, 255, 0, 255],
+      //     onClick: (info) => { if (info.object && onStationClick) onStationClick(info.object); },
+      //     onTilesetLoad: (tileset) => {
+      //       const bounds = layerData.asset.ept.bounds;
+      //       console.log("Point cloud bounds::::", bounds);
+      //       const [minX, minY, minZ, maxX, maxY, maxZ] = bounds;
+      //       const centerX = (minX + maxX) / 2;
+      //       const centerY = (minY + maxY) / 2;
+      //       const centerLng = (centerX / 20037508.34) * 180; 
             
-            const centerLat = (180 / Math.PI) * (2 * Math.atan(Math.exp(centerY / 6378137.0)) - Math.PI / 2);
-            
-            if (mapContext?.map) {
-              mapContext.map.flyTo({
-                center: [centerLng, centerLat], 
-                zoom: 8,
-                pitch: 60,
-                bearing: 0,
-                duration: 2000,
-              });
-            }
-          }
-        });
-        newLayers.push(pointCloudLayer);
-        break;
-      }
+      //       const centerLat = (180 / Math.PI) * (2 * Math.atan(Math.exp(centerY / 6378137.0)) - Math.PI / 2);
+      //       console.log(centerLng, centerLat)
+      //       if (mapContext?.map) {
+      //         mapContext.map.flyTo({
+      //           center: [centerLng, centerLat], 
+      //           zoom: 8,
+      //           pitch: 60,
+      //           bearing: 0,
+      //           duration: 2000,
+      //         });
+      //       }
+      //     }
+      //   });
+      //   newLayers.push(pointCloudLayer);
+      //   break;
+      // }
+      //OMI
       case 'raster': {
         const bounds = calculateGeoJSONBounds(layerData.features);
         const rasterLayers = layerData.features.slice(0, 1).map((feature, index) => {
@@ -123,7 +125,7 @@ export function DeckGlLayerManager({
             opacity: dynamicOpacity,
             renderSubLayers: props => {
               const { bbox: { west, south, east, north } } = props.tile;
-              return new BitmapLayer({ ...props, data: null, image: props.data, bounds: [west, south, east, north], modelMatrix: new Matrix4().translate([0, 0, 0]), });
+              return new BitmapLayer({ ...props, data: null, image: props.data, bounds: [west, south, east, north], modelMatrix: new Matrix4().translate([0, 0, 0])});
             },
             onClick: (info) => { if (onStationClick) onStationClick({ type: 'raster', feature, tile: info.tile, coordinate: info.coordinate, datetime: properties?.datetime }); }
           });
@@ -138,14 +140,17 @@ export function DeckGlLayerManager({
         }
         break;
       }
+      //TROPESS
       case 'netcdf-2d': {
         const { conceptId, datetime, variable, bounds, ...rest } = layerData;
+        const varValues = {'lev':[10,100,1000]};
         if (!conceptId || !datetime || !variable) {
           console.warn('NetCDF 2D layer requires conceptId, datetime, and variable');
           newLayers = [];
           break;
         }
-        const tileUrl = buildNetCDF2DTileUrl(conceptId, datetime, variable, rest);
+        const tileUrl = buildNetCDF2DTileUrl(conceptId, datetime, variable, varValues, rest);
+        
         const netcdfLayer = new TileLayer({
           id: getLayerId('netcdf-2d', datasetId),
           data: tileUrl,
@@ -154,7 +159,7 @@ export function DeckGlLayerManager({
           opacity: dynamicOpacity,
           renderSubLayers: props => {
             const { bbox: { west, south, east, north } } = props.tile;
-            return new BitmapLayer({ ...props, data: null, image: props.data, bounds: [west, south, east, north] });
+            return new BitmapLayer({ ...props, opacity:dynamicOpacity, data: null, image: props.data, bounds: [west, south, east, north], modelMatrix: new Matrix4().translate([0, 0, 0]) });
           },
           onClick: (info) => { if (onStationClick) onStationClick({ type: 'netcdf-2d', conceptId, datetime, variable, tile: info.tile, coordinate: info.coordinate, layerData }); },
           onTileLoad: (tile) => console.log('NetCDF tile loaded:', tile),
@@ -169,6 +174,7 @@ export function DeckGlLayerManager({
         }
         break;
       }
+      //AQS
       case 'feature': {
         const geojsonData = layerData;
         const stationBounds = calculateGeoJSONBounds(layerData.features);

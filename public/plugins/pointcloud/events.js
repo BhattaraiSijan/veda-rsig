@@ -20,9 +20,16 @@ const handleLayerClick = (layer) => {
     interleaved: false,
     layers: [pointCloudLayer],
   });
-
-
+  
+  
   window.map.current.addControl(deckOverlay);
+  window.map.current.flyTo({
+    center: [-104.11787656428743,34.168559741615645], 
+    zoom: 8,
+    pitch: 60,
+    bearing: 0,
+    duration: 2000,
+  })
   console.log(window.map.current);
 };
 
