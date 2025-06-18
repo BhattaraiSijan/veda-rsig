@@ -121,7 +121,6 @@ export function DeckGlLayerManager({
             id: getLayerId('raster', `${datasetId}-${index}-${itemId}`),
             data: tileUrl,
             minZoom: 0, maxZoom: 19, tileSize: 256, visible: visible, pickable: true,
-            
             opacity: dynamicOpacity,
             renderSubLayers: props => {
               const { bbox: { west, south, east, north } } = props.tile;
@@ -133,9 +132,7 @@ export function DeckGlLayerManager({
         newLayers.push(...rasterLayers);
         if (bounds && mapContext?.map) {
           setTimeout(() => {
-            const isRegional = bounds && (bounds.maxLng - bounds.minLng) < 100 && (bounds.maxLat - bounds.minLat) < 50;
-            if (isRegional) zoomToBounds(mapContext.map, bounds, { padding: 20, maxZoom: 4, pitch: 0, bearing: 0 });
-            else mapContext.map.flyTo({ center: [0, 30], zoom: 0, pitch: 0, bearing: 0, duration: 2000 });
+            mapContext.map.flyTo({ center: [-98.5795, 39.8283], zoom: 2, pitch: 0, bearing: 0, duration: 2000 });
           }, 500);
         }
         break;
@@ -143,8 +140,8 @@ export function DeckGlLayerManager({
       //TROPESS
       case 'netcdf-2d': {
         const { conceptId, datetime, variable, bounds, ...rest } = layerData;
-        const varValues = {'lev':[10,100,1000]};
-
+        const varValues = {'lev':[10,100]};
+        
         if (!conceptId || !datetime || !variable) {
           console.warn('NetCDF 2D layer requires conceptId, datetime, and variable');
           newLayers = [];
@@ -159,7 +156,7 @@ export function DeckGlLayerManager({
           
           if (lev === undefined) return;
           
-          const zOffset = lev * 1000;
+          const zOffset = lev * 10000;
           
           const netcdfLayer = new TileLayer({
             id: `${getLayerId('netcdf-2d', datasetId)}-lev-${lev}`,
@@ -248,7 +245,6 @@ export function DeckGlLayerManager({
       }
     }
     setManagedLayers(prevManaged => {
-      console.log("ALL the layers:::",newLayers);
       return {
         ...prevManaged,
         [datasetId]: newLayers,
@@ -258,5 +254,47 @@ export function DeckGlLayerManager({
     layerData, activeLayerUrl, galleryType, datasetId, visible,
     onStationClick, mapContext, layerOpacityList
   ]);
+  
+  useEffect(() => {
+    // Only update opacity for layers whose opacity value has changed
+    setManagedLayers(prevManagedLayers => {
+      const updatedManaged = { ...prevManagedLayers };
+      
+      for (const layerOpacityEntry of layerOpacityList) {
+        const { id: datasetId, opacity: newOpacityValue } = layerOpacityEntry;
+        const newOpacity = newOpacityValue / 100;
+        
+        if (!updatedManaged[datasetId]) continue;
+        
+        const existingLayers = updatedManaged[datasetId];
+        
+        // Clone each layer with new opacity
+        updatedManaged[datasetId] = existingLayers.map(layer => {
+          if (layer.props.opacity === newOpacity) return layer;
+          
+          // Top-level layer opacity
+                 const originalRender = layer.props.renderSubLayers;
+
+        const cloned = layer.clone({
+          opacity: newOpacity,
+          ...(originalRender && {
+            renderSubLayers: props => {
+              const sub = originalRender(props);
+              return sub?.clone
+                ? sub.clone({ opacity: newOpacity })
+                : sub;
+            }
+          })
+        });
+
+        return cloned;
+
+        });
+      }
+      
+      return updatedManaged;
+    });
+  }, [layerOpacityList]);
+  
   return null;
 }
