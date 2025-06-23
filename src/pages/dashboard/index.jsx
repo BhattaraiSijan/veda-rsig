@@ -206,7 +206,6 @@ export function Dashboard({
             </Stack>
           </Paper>
 
-          <MapZoom zoomLocation={zoomLocation} zoomLevel={zoomLevel} />
           <MapControls
             openDrawer={openDrawer}
             setOpenDrawer={setOpenDrawer}

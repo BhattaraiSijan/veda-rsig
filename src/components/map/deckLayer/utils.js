@@ -141,48 +141,41 @@ export const buildNetCDF2DTileUrl = (conceptId, datetime, variable, varValues, o
     return [];
   }
 
-  const {
-    scale = '1',
-    colormap = 'reds',
-    rescale = '0,8',
-    backend = 'xarray',
-    ...additionalParams
-  } = options;
-
-  const baseUrl = 'https://staging.openveda.cloud/api/titiler-cmr/tiles/WebMercatorQuad/{z}/{x}/{y}';
+  const baseUrl = 'https://v4jec6i5c0.execute-api.us-west-2.amazonaws.com/tiles/WebMercatorQuad/{z}/{x}/{y}';
   
-  // Create a base set of parameters that will be common to all URLs
   const baseParams = {
-    scale,
-    concept_id: conceptId,
-    datetime: datetime,
-    variable: variable,
-    backend: backend,
-    colormap_name: colormap,
-    rescale: rescale,
-    ...additionalParams
-  };
-
-  const urls = [];
-
-  // Iterate over the keys in the varValues object (e.g., 'lev')
-  for (const [dimensionKey, dimensionValues] of Object.entries(varValues)) {
-    // For each key, iterate over its array of values (e.g., 10, 100, 1000)
-    for (const value of dimensionValues) {
-      // Create a new URLSearchParams object for each unique URL
-      const individualParams = new URLSearchParams(baseParams);
-      
-      // Add the specific 'expression' parameter for the current value
-      individualParams.set('expression', `${dimensionKey}=${value}`);
-
-      // Construct the full URL and add it to our results array
-      urls.push(`${baseUrl}?${individualParams.toString()}`);
-    }
-  }
-
-  return urls;
+  concept_id: 'C2837626477-GES_DISC',
+  variable: 'o3',
+  rescale: '20,70',
+  backend: 'xarray',
+  sel_method: 'nearest',
+  colormap_name: 'reds', 
 };
 
+const urls = [];
+
+for (const [dimensionKey, dimensionValues] of Object.entries(varValues)) {
+  for (const value of dimensionValues) {
+    const params = new URLSearchParams(baseParams);
+
+    // Add sel=dimension=value (e.g., sel=lev=500)
+    params.append('sel', `${dimensionKey}=${value}`);
+
+    // Add sel=time=timestamp (from datetime)
+    const isoTime = new Date(datetime).toISOString();
+    params.append('sel', `time=${isoTime}`);
+
+    // Add datetime as a range (e.g., 2021-12-01T00:00:00.000Z/2021-12-01T23:59:59.999Z)
+    const dayStart = new Date(datetime);
+    const dayEnd = new Date(dayStart);
+    dayEnd.setUTCHours(23, 59, 59, 999);
+    params.set('datetime', `${dayStart.toISOString()}/${dayEnd.toISOString()}`);
+
+    urls.push(`${baseUrl}?${params.toString()}`);
+  }
+}
+  return urls;
+};
 
 export const buildTileUrl = (type, params) => {
   switch (type) {
@@ -231,14 +224,6 @@ export const addOrUpdateLayers = (layers, newLayers, datasetId) => {
     const includesWithDashTest = layer.id.includes(`-${datasetId}`);
     const includesWithDashEndTest = layer.id.includes(`-${datasetId}-`);
     const regexTest = new RegExp(`deckgl-\\w+-layer-${escapeRegExp(datasetId)}(?:-|$)`).test(layer.id);
-    
-    console.log(`🔍 Layer ID: ${layer.id}`);
-    console.log(`   Dataset: ${datasetId}`);
-    console.log(`   includes(datasetId): ${includesTest}`);
-    console.log(`   includes(-datasetId): ${includesWithDashTest}`);
-    console.log(`   includes(-datasetId-): ${includesWithDashEndTest}`);
-    console.log(`   regex test: ${regexTest}`);
-    console.log('---');
   });
   
   const filteredLayers = layers.filter(layer => {
@@ -246,12 +231,6 @@ export const addOrUpdateLayers = (layers, newLayers, datasetId) => {
     const belongsToCurrentDataset = exactPattern.test(layer.id);
     
     const shouldKeep = !belongsToCurrentDataset;
-    
-    if (!shouldKeep) {
-      console.log(`🗑️ REMOVING layer: ${layer.id} (matches dataset ${datasetId})`);
-    } else {
-      console.log(`✅ KEEPING layer: ${layer.id} (different dataset)`);
-    }
     
     return shouldKeep;
   });
@@ -263,12 +242,6 @@ export const addOrUpdateLayers = (layers, newLayers, datasetId) => {
   });
   
   const result = [...filteredLayers, ...newLayers];
-  
-  console.log('✅ Final result:', {
-    totalLayersCount: result.length,
-    allLayerIds: result.map(l => l.id)
-  });
-  
   return result;
 };
 

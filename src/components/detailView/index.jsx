@@ -247,13 +247,13 @@ export function RecordDetailView({
       sx={{
         mt: 2,
         borderRadius: 2,
-        maxHeight: '250px',
-        overflow: 'hidden',
+        maxHeight: '320px',
+        overflow: 'scroll',
         display: 'flex',
-        flexDirection: 'column'
+        flexDirection: 'column',
       }}
     >
-      <Box sx={{ p: 1.5, pb: 1, position: 'relative', borderBottom: 1, borderColor: 'divider' }}>
+      <Box sx={{ p: 1.5, pb: 1, position: 'relative', borderBottom: 1, borderColor: 'divider',  }}>
         <IconButton
           aria-label="close"
           onClick={onClose}
