@@ -140,15 +140,13 @@ export function DeckGlLayerManager({
       //TROPESS
       case 'netcdf-2d': {
         const { conceptId, datetime, variable, bounds, ...rest } = layerData;
-        const varValues = {'lev':[10,100]};
+        const varValues = {'lev':[500,1000]};
         
         if (!conceptId || !datetime || !variable) {
-          console.warn('NetCDF 2D layer requires conceptId, datetime, and variable');
           newLayers = [];
           break;
         }
         const tileUrls = buildNetCDF2DTileUrl(conceptId, datetime, variable, varValues, rest);
-        
         const levValues = varValues?.lev || [];
         
         tileUrls.forEach((tileUrl, index) => {
@@ -156,7 +154,7 @@ export function DeckGlLayerManager({
           
           if (lev === undefined) return;
           
-          const zOffset = lev * 10000;
+          const zOffset = lev * 1000;
           const BOUNDS = [-125.0, 24.5, -66.5, 49.5];
           const netcdfLayer = new TileLayer({
             id: `${getLayerId('netcdf-2d', datasetId)}-lev-${lev}`,
@@ -296,7 +294,6 @@ export function DeckGlLayerManager({
           
         });
       }
-      
       return updatedManaged;
     });
   }, [layerOpacityList]);

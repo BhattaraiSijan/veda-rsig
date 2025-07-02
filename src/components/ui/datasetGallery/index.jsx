@@ -27,9 +27,9 @@ export function DatasetGallery({ onLayerSelect, onRecordSelect, updateActiveData
   const handleDatasetClick = async (dataset) => {
     if (dataset.type === 'netcdf-2d') {
     const directData = {
-      conceptId: dataset.conceptId || "C3273638632-GES_DISC",
+      conceptId: dataset.conceptId || "C2837626477-GES_DISC",
       datetime: dataset.datetime || "2018-02-12T09:00:00Z", 
-      variable: dataset.variable || "NPP",
+      variable: dataset.variable || "o3",
       colormap: dataset.colormap || "reds",
       rescale: dataset.rescale || "0, 4.786979e-10",
       datasetInfo: dataset,
