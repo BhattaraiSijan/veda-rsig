@@ -278,31 +278,47 @@ export function RecordDetailView({
 
       <DragDropContext onDragStart={handleDragStart} onDragEnd={handleDragEnd}>
         <Droppable droppableId="datasets">
-          {(provided) => (
-            <Box
-              {...provided.droppableProps}
-              ref={provided.innerRef}
-              sx={{
-                flex: 1,
-                overflowY: 'auto',
-                p: 1.5,
-                pt: 1
-              }}
-            >
-              {allActiveDatasets.map((dataset, index) => (
-                <LayerCard
-                  key={dataset.id || index}
-                  dataset={dataset}
-                  index={index}
-                  onOpacityChange={handleOpacityChange}
-                  onRemove={handleRemove}
-                  isDragging={isDragging}
-                />
-              ))}
-              {provided.placeholder}
-            </Box>
-          )}
-        </Droppable>
+  {(provided) => (
+    <Box
+      {...provided.droppableProps}
+      ref={provided.innerRef}
+      sx={{
+        flex: 1,
+        overflowY: 'auto',
+        p: 1.5,
+        pt: 1
+      }}
+    >
+      {console.log("AllActive Layers:::", allActiveLayers)}
+      {console.log("AllActive Datasets:::", allActiveDatasets)}
+
+      {/* Iterate over all active datasets to maintain the dataset context */}
+      {allActiveDatasets.map((dataset) => {
+        // Get the layers associated with this dataset
+        const layersForDataset = allActiveLayers[dataset.id];
+
+        if (layersForDataset && layersForDataset.length > 0) {
+          return layersForDataset.map((layer, index) => (
+            <LayerCard
+              // Use a unique key for each layer, combining dataset ID and layer ID/index
+              key={`${dataset.id}-${layer.id || index}`}
+              // Pass the individual layer object
+              layer={layer}
+              // Pass the parent dataset object for contextual information
+              dataset={dataset}
+              // You might need to adjust onOpacityChange and onRemove to work with individual layers
+              onOpacityChange={handleOpacityChange}
+              onRemove={handleRemove}
+              isDragging={isDragging}
+            />
+          ));
+        }
+        return null; // If no active layers for this dataset, render nothing
+      })}
+      {provided.placeholder}
+    </Box>
+  )}
+</Droppable>
       </DragDropContext>
     </Paper>
   );
