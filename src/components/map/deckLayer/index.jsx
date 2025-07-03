@@ -72,45 +72,45 @@ export function DeckGlLayerManager({
     let newLayers = [];
     switch (galleryType) {
       //CALIPSO
-      // case 'point-cloud': {
-      //   const pointCloudLayer = new Tile3DLayer({
-      //     id: getLayerId('pointcloud', datasetId),
-      //     data: activeLayerUrl,
-      //     pickable: true,
-      //     visible: visible,
-      //     pointSize: 2,
-      //     opacity: dynamicOpacity,
-      //     _subLayerProps: {
-      //       'points': { pointSize: 0.2, getColor: (d) => d.color || [0, 255, 0, 255], material: false, radiusPixels: 15, billboard: false, sizeScale: 1, sizeMinPixels: 8, sizeMaxPixels: 30, opacity:dynamicOpacity },
-      //       'mesh': { getColor: [0, 255, 0, 255], material: false, wireframe: false, opacity:dynamicOpacity }
-      //     },
-      //     loadOptions: { '3d-tiles': { pointCloudColoration: { mode: 'RGB' } } },
-      //     getPointColor: [0, 255, 0, 255],
-      //     onClick: (info) => { if (info.object && onStationClick) onStationClick(info.object); },
-      //     onTilesetLoad: (tileset) => {
-        //       const bounds = layerData.asset.ept.bounds;
-      //       console.log("Point cloud bounds::::", bounds);
-      //       const [minX, minY, minZ, maxX, maxY, maxZ] = bounds;
-      //       const centerX = (minX + maxX) / 2;
-      //       const centerY = (minY + maxY) / 2;
-      //       const centerLng = (centerX / 20037508.34) * 180; 
+      case 'point-cloud': {
+        const pointCloudLayer = new Tile3DLayer({
+          id: getLayerId('pointcloud', datasetId),
+          data: activeLayerUrl,
+          pickable: true,
+          visible: visible,
+          pointSize: 2,
+          opacity: dynamicOpacity,
+          _subLayerProps: {
+            'points': { pointSize: 0.2, getColor: (d) => d.color || [0, 255, 0, 255], material: false, radiusPixels: 15, billboard: false, sizeScale: 1, sizeMinPixels: 8, sizeMaxPixels: 30, opacity:dynamicOpacity },
+            'mesh': { getColor: [0, 255, 0, 255], material: false, wireframe: false, opacity:dynamicOpacity }
+          },
+          loadOptions: { '3d-tiles': { pointCloudColoration: { mode: 'RGB' } } },
+          getPointColor: [0, 255, 0, 255],
+          onClick: (info) => { if (info.object && onStationClick) onStationClick(info.object); },
+          onTilesetLoad: (tileset) => {
+              const bounds = layerData.asset.ept.bounds;
+            console.log("Point cloud bounds::::", bounds);
+            const [minX, minY, minZ, maxX, maxY, maxZ] = bounds;
+            const centerX = (minX + maxX) / 2;
+            const centerY = (minY + maxY) / 2;
+            const centerLng = (centerX / 20037508.34) * 180; 
       
-      //       const centerLat = (180 / Math.PI) * (2 * Math.atan(Math.exp(centerY / 6378137.0)) - Math.PI / 2);
-      //       console.log(centerLng, centerLat)
-      //       if (mapContext?.map) {
-      //         mapContext.map.flyTo({
-      //           center: [centerLng, centerLat], 
-      //           zoom: 8,
-      //           pitch: 60,
-      //           bearing: 0,
-      //           duration: 2000,
-      //         });
-      //       }
-      //     }
-      //   });
-      //   newLayers.push(pointCloudLayer);
-      //   break;
-      // }
+            const centerLat = (180 / Math.PI) * (2 * Math.atan(Math.exp(centerY / 6378137.0)) - Math.PI / 2);
+            console.log(centerLng, centerLat)
+            if (mapContext?.map) {
+              mapContext.map.flyTo({
+                center: [centerLng, centerLat], 
+                zoom: 8,
+                pitch: 60,
+                bearing: 0,
+                duration: 2000,
+              });
+            }
+          }
+        });
+        newLayers.push(pointCloudLayer);
+        break;
+      }
       //OMI
       case 'raster': {
         const bounds = calculateGeoJSONBounds(layerData.features);
